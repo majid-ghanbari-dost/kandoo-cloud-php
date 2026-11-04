@@ -103,12 +103,40 @@ final class GoldenHarness
     private static function seed(array $given, HarnessGateway $gateway): array
     {
         $seededEntryCounts = [];
+        $seededStores = [];
         foreach ((array) ($given['stores'] ?? []) as $store) {
             $gateway->seedStore($store);
             $seededEntryCounts[(string) $store['store_id']] = 0;
+            $seededStores[(string) $store['store_id']] = true;
         }
+
+        // FK completion for MariaDB replay: projection-only cases (g-017..g-022) omit the
+        // parent cloud_stores row in `given` — the memory gateway ignores that, the real
+        // database enforces fk_public_invoices_store. The harness seeds an INERT synthetic
+        // parent (writer epoch 1, all counters zero) whenever a child row references an
+        // unseeded store; no golden file and no assertion is changed (disclosed in
+        // docs/CONTRACT-REPLAY.md).
+        $ensureStore = static function (string $storeId) use ($gateway, &$seededStores, &$seededEntryCounts): void {
+            if (isset($seededStores[$storeId])) {
+                return;
+            }
+            $seededStores[$storeId] = true;
+            $seededEntryCounts[$storeId] = 0;
+            $gateway->seedStore([
+                'store_id' => $storeId,
+                'active_writer_device_id' => '22222222-2222-4222-8222-222222222222',
+                'active_writer_epoch' => 1,
+                'accepted_through_seq' => 0,
+                'entry_count' => 0,
+                'head_entry_hash' => null,
+                'projection_version' => 0,
+                'throttled' => false,
+            ]);
+        };
+
         foreach ((array) ($given['entries'] ?? []) as $entry) {
             $storeId = (string) $entry['store_id'];
+            $ensureStore($storeId);
             $fields = $entry;
             unset($fields['store_id']);
             $entryJson = Writer::encodeCanonical(JsonObject::fromMap($fields));
@@ -122,6 +150,7 @@ final class GoldenHarness
             $seededEntryCounts[$storeId] = ($seededEntryCounts[$storeId] ?? 0) + 1;
         }
         foreach ((array) ($given['batches'] ?? []) as $batch) {
+            $ensureStore((string) $batch['store_id']);
             $gateway->seedBatch(
                 (string) $batch['store_id'],
                 (string) $batch['batch_id'],
@@ -129,6 +158,7 @@ final class GoldenHarness
             );
         }
         foreach ((array) ($given['public_invoices'] ?? []) as $row) {
+            $ensureStore((string) $row['store_id']);
             $token = (string) $row['public_token'];
             $gateway->seedProjection([
                 'public_token' => $token,

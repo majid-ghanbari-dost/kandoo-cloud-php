@@ -11,7 +11,12 @@ by `tests/Support/GoldenHarness.php`:
 1. `config` overrides are merged onto a fake base configuration and validated fail-closed.
 2. `given` seeds the gateway (stores, entries, batches, public invoices — including
    `{public_token}` resolution: the harness looks the stored token up by
-   `(store_id, invoice_id)`, never invents one).
+   `(store_id, invoice_id)`, never invents one). Projection-only cases (g-017…g-022)
+   omit the parent `cloud_stores` row; on MariaDB the FK `fk_public_invoices_store`
+   requires it, so the harness seeds an **inert synthetic parent** (epoch 1, all
+   counters zero) for any child row referencing an unseeded store. This is fixture
+   completion only — no golden file, no assertion and no implementation behaviour is
+   changed (first observed as CI errors on 92d12bbe, both stable-p-04 runs red).
 3. Every `steps[i].request` is dispatched through the real `Kernel`
    (deterministic clock `2026-01-02T03:04:05Z`, fake client IP `203.0.113.7`);
    `content_length` overrides reproduce declared-length behaviour (U4).
