@@ -1,0 +1,28 @@
+# Web root — فاکتور دیجیتال کندو (Kandoo Digital Invoice) Cloud.
+# Everything is rewritten to the tiny front controller EXCEPT real files under /assets/
+# (local fonts etc. — no CDN, no external requests; CLOUD-CONTRACT.md §9).
+
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Serve real files under /assets/ directly.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^assets/ - [L]
+
+    # Everything else goes to the front controller (query string passes through).
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Never expose dotfiles from the web root.
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

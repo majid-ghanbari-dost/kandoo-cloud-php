@@ -1,0 +1,11 @@
+# Kandoo Cloud PHP (فاکتور دیجیتال کندو / Kandoo Digital Invoice)
+# This directory is NEVER web-accessible. The documented host layout points the
+# document root at public/ only; this file is defense in depth if a host ever
+# exposes the application tree.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

@@ -1,6 +1,7 @@
 # CI for the Kandoo Cloud PHP repo (فاکتور دیجیتال کندو / Kandoo Digital Invoice).
-# PM ORDER 9 standing rule: GitHub Actions, PHP 8.1 + MariaDB 10.6 service, running PHPUnit.
-# The docs job (P-01) validates contract documents and golden-pair self-consistency with no PHP needed.
+# PM ORDER 9 standing rules: GitHub Actions, PHP 8.1 + MariaDB 10.6 service, PHPUnit.
+# The deployed tree needs no Composer (decision D2): CI FETCHES PHPUnit at run time, and
+# config.php with FAKE CI credentials is generated at run time — never committed.
 name: CI
 
 on:
@@ -32,3 +33,55 @@ jobs:
           python-version: '3.11'
       - name: Validate schemas, golden pairs and canonical-hash fixtures
         run: python3 tools/ci/validate_docs.py
+
+  phpunit:
+    name: PHPUnit (PHP 8.1 + MariaDB 10.6)
+    runs-on: ubuntu-22.04
+    services:
+      mariadb:
+        image: mariadb:10.6
+        env:
+          # FAKE CI-only credentials, generated per run — never real, never committed.
+          MYSQL_ROOT_PASSWORD: TEST-root-pass
+          MYSQL_DATABASE: TEST_kandoo_cloud
+          MYSQL_USER: TEST_kandoo_user
+          MYSQL_PASSWORD: TEST-DB-PASSWORD
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.1
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: pdo_mysql, mbstring
+          coverage: none
+
+      - name: Fetch PHPUnit 9 (CI may fetch PHPUnit; the deployed tree has no vendor deps)
+        run: |
+          wget -O phpunit.phar https://phar.phpunit.de/phpunit-9.phar
+          php phpunit.phar --version
+
+      - name: Generate CI config (FAKE values from environment)
+        env:
+          KANDOO_BASE_URL: https://invoice.TEST-ci.invalid
+          KANDOO_DB_HOST: 127.0.0.1
+          KANDOO_DB_PORT: '3306'
+          KANDOO_DB_NAME: TEST_kandoo_cloud
+          KANDOO_DB_USER: TEST_kandoo_user
+          KANDOO_DB_PASS: TEST-DB-PASSWORD
+        run: php tests/ci/write-config.php
+
+      - name: Run migrations
+        run: php bin/migrate.php
+
+      - name: PHPUnit (unit suite; DB tests against the MariaDB service)
+        env:
+          KANDOO_DB_TESTS: '1'
+        run: php phpunit.phar --configuration phpunit.xml.dist

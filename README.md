@@ -23,6 +23,23 @@ local Hub holds the master copy (D5).
 | `tests/` | PHPUnit tests, including the golden-pair contract tests (P-04). |
 | `tools/ci/` | CI-side validation scripts. |
 
+## Deployment layout (shared host, no shell)
+
+```
+<app root>/            ← uploaded tree; NOT the document root
+├── config.php         ← real config, created from config.example.php (never committed)
+├── config.example.php ← obviously FAKE placeholders only
+├── src/  bin/  migrations/  docs/  tests/  tools/   ← denied by .htaccess (defense in depth)
+└── public/            ← the host's DOCUMENT ROOT points here
+    ├── index.php      ← front controller (everything routes through it)
+    ├── .htaccess      ← rewrite-all except real files under /assets/
+    └── assets/fonts/  ← local Vazirmatn (OFL), byte-pinned — no CDN, no external requests
+```
+
+`config.php` sits **one level above the web root** and the bootstrap fails **closed** with a
+plain error when it is missing. `base_url` in the config is the single source of every
+absolute link (D4) — no domain is hardcoded anywhere.
+
 ## Ground rules
 
 - **CREATE-ONLY workflow:** work happens on the session branch with one commit group + one new
