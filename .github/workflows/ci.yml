@@ -37,6 +37,11 @@ jobs:
   phpunit:
     name: PHPUnit (PHP 8.1 + MariaDB 10.6)
     runs-on: ubuntu-22.04
+    permissions:
+      # contents:write ONLY so the failure-diagnostics step below can post the PHPUnit
+      # output as a commit comment (runner log blobs are not reachable from every
+      # environment; comments are readable through the GitHub API).
+      contents: write
     services:
       mariadb:
         image: mariadb:10.6
@@ -84,4 +89,22 @@ jobs:
       - name: PHPUnit (unit + contract suites; golden replay on memory AND MariaDB gateways)
         env:
           KANDOO_DB_TESTS: '1'
-        run: php phpunit.phar --configuration phpunit.xml.dist
+        run: |
+          set +e
+          php phpunit.phar --configuration phpunit.xml.dist --debug 2>&1 | tee phpunit-output.txt
+          status=${PIPESTATUS[0]}
+          echo "PHPUnit exit code: $status" | tee -a phpunit-output.txt
+          exit $status
+
+      - name: On failure - post PHPUnit output as a commit comment (API-readable diagnostics)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tail -c 60000 phpunit-output.txt > phpunit-tail.txt || true
+          {
+            printf 'PHPUnit diagnostics for `%s` (run %s)\n\n```\n' "${{ github.sha }}" "${{ github.run_id }}"
+            cat phpunit-tail.txt 2>/dev/null || echo '(no phpunit output captured - failure happened earlier)'
+            printf '\n```\n'
+          } > comment-body.md
+          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments"             -F body=@comment-body.md --jq '.html_url' || echo 'COMMENT POST FAILED'
