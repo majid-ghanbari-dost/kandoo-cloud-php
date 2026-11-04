@@ -74,34 +74,51 @@ foreach ($newClasses as $class) {
             echo "s $label ($classSkipped)\n";
             continue;
         }
-        try {
-            /** @var PHPUnit\Framework\TestCase $instance */
-            $instance = $reflection->newInstance();
-            foreach (['setUp', 'tearDown'] as $hook) {
-                if ($reflection->hasMethod($hook)) {
-                    $reflection->getMethod($hook)->setAccessible(true);
-                }
+        // @dataProvider support (mirrors PHPUnit): resolve datasets, run each one.
+        $datasets = [null => []];
+        $doc = $method->getDocComment();
+        if (is_string($doc) && preg_match('/@dataProvider\s+([A-Za-z0-9_]+)/', $doc, $providerMatch) === 1) {
+            $providerName = $providerMatch[1];
+            if (!$reflection->hasMethod($providerName)) {
+                $failed++;
+                $failures[] = "$label → @dataProvider $providerName not found";
+                echo "E $label: @dataProvider $providerName not found\n";
+                continue;
             }
-            $setUp = $reflection->getMethod('setUp');
-            $setUp->setAccessible(true);
-            $setUp->invoke($instance);
-            $method->invoke($instance);
-            $tearDown = $reflection->getMethod('tearDown');
-            $tearDown->setAccessible(true);
-            $tearDown->invoke($instance);
-            $passed++;
-            echo ". $label\n";
-        } catch (PHPUnit\Framework\SkippedTestError $e) {
-            $skipped++;
-            echo "s $label (" . $e->getMessage() . ")\n";
-        } catch (PHPUnit\Framework\AssertionFailedError $e) {
-            $failed++;
-            $failures[] = "$label → " . $e->getMessage();
-            echo "F $label: " . $e->getMessage() . "\n";
-        } catch (Throwable $e) {
-            $failed++;
-            $failures[] = "$label → " . get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine();
-            echo "E $label: " . get_class($e) . ': ' . $e->getMessage() . "\n";
+            $provider = $reflection->getMethod($providerName);
+            $provider->setAccessible(true);
+            $data = $provider->invoke(null);
+            $datasets = [];
+            foreach ((array) $data as $key => $args) {
+                $datasets[$key] = is_array($args) ? array_values($args) : [$args];
+            }
+        }
+        foreach ($datasets as $dataKey => $args) {
+            $caseLabel = count($datasets) > 1 && !is_int($dataKey) ? "$label [$dataKey]" : $label;
+            try {
+                /** @var PHPUnit\Framework\TestCase $instance */
+                $instance = $reflection->newInstance();
+                $setUp = $reflection->getMethod('setUp');
+                $setUp->setAccessible(true);
+                $setUp->invoke($instance);
+                $method->invokeArgs($instance, $args);
+                $tearDown = $reflection->getMethod('tearDown');
+                $tearDown->setAccessible(true);
+                $tearDown->invoke($instance);
+                $passed++;
+                echo ". $caseLabel\n";
+            } catch (PHPUnit\Framework\SkippedTestError $e) {
+                $skipped++;
+                echo "s $caseLabel (" . $e->getMessage() . ")\n";
+            } catch (PHPUnit\Framework\AssertionFailedError $e) {
+                $failed++;
+                $failures[] = "$caseLabel → " . $e->getMessage();
+                echo "F $caseLabel: " . $e->getMessage() . "\n";
+            } catch (Throwable $e) {
+                $failed++;
+                $failures[] = "$caseLabel → " . get_class($e) . ': ' . $e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine();
+                echo "E $caseLabel: " . get_class($e) . ': ' . $e->getMessage() . "\n";
+            }
         }
     }
     try {

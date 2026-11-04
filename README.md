@@ -53,4 +53,6 @@ absolute link (D4) — no domain is hardcoded anywhere.
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`): contract-docs/golden validation, and — from P-02 —
-PHP 8.1 + a MariaDB 10.6 service running PHPUnit.
+PHP 8.1 + a MariaDB 10.6 service running PHPUnit (unit suite; from P-04 also the contract
+suite, which replays every golden pair in `docs/golden/` on both the memory and MariaDB
+gateways — see `docs/CONTRACT-REPLAY.md`).

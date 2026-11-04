@@ -81,7 +81,7 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
-      - name: PHPUnit (unit suite; DB tests against the MariaDB service)
+      - name: PHPUnit (unit + contract suites; golden replay on memory AND MariaDB gateways)
         env:
           KANDOO_DB_TESTS: '1'
         run: php phpunit.phar --configuration phpunit.xml.dist
