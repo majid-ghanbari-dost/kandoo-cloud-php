@@ -6,41 +6,70 @@ namespace Kandoo\Cloud;
 
 use Kandoo\Cloud\Http\Request;
 use Kandoo\Cloud\Http\Response;
+use Kandoo\Cloud\Service\IngestService;
+use Kandoo\Cloud\Service\PublicInvoiceService;
+use Kandoo\Cloud\Store\MariaDbGateway;
+use Kandoo\Cloud\Store\StoreGateway;
+use Kandoo\Cloud\Support\Clock;
+use Kandoo\Cloud\Support\SystemClock;
 
 /**
- * Application kernel — pure request → response logic (PM ORDER 9 P-02 skeleton).
+ * Application kernel — pure request → response logic.
  *
  * Routes (frozen surface, CLOUD-CONTRACT.md §2):
- *   GET  /health                                  → {"status":"ok"}            (§2.1)
- *   POST /v1/stores/{store_id}/operation-batches  → replication ingest          (§5, wired in P-03)
- *   GET  /i/{token}                               → public invoice read         (§6, wired in P-03)
- * Everything else → 404 with an empty body (framework-equivalent); known path with a
- * wrong method → 405. Deferred customer/OTP endpoints are NOT mounted (U12): they share
- * the same generic 404 as any unknown path.
+ *   GET  /health                                  → {"status":"ok"}           (§2.1)
+ *   POST /v1/stores/{store_id}/operation-batches  → replication ingest         (§5)
+ *   GET  /i/{token}                               → public invoice read        (§6)
+ * Known path + wrong method → 405 (Allow). Everything else → 404 with an empty body
+ * (framework-equivalent). Deferred customer/OTP endpoints are NOT mounted (U12): they
+ * share the same generic 404 as any unknown path.
  *
- * Privacy: nothing in this class logs tokens, URIs or bodies (§6.6).
+ * Privacy: the kernel logs nothing — no tokens, no URIs, no bodies (§6.6).
  *
  * Product: فاکتور دیجیتال کندو (Kandoo Digital Invoice).
  */
 final class Kernel
 {
+    private StoreGateway $gateway;
+    private Clock $clock;
+
     /** @param array<string, mixed> $config validated configuration */
-    public function __construct(private array $config)
-    {
+    public function __construct(
+        private array $config,
+        ?StoreGateway $gateway = null,
+        ?Clock $clock = null,
+    ) {
+        $this->gateway = $gateway ?? new MariaDbGateway(new Database($config));
+        $this->clock = $clock ?? new SystemClock();
     }
 
     public function handle(Request $request): Response
     {
         $path = $request->path();
+        $method = $request->method();
 
         if ($path === '/health') {
-            if ($request->method() !== 'GET') {
+            if ($method !== 'GET') {
                 return Response::emptyBody(405, ['Allow' => 'GET']);
             }
             return Response::json(200, ['status' => 'ok']);
         }
 
-        // P-03 mounts: POST /v1/stores/{store_id}/operation-batches and GET /i/{token}.
+        if (preg_match('#^/v1/stores/([^/]+)/operation-batches$#', $path, $matches) === 1) {
+            if ($method !== 'POST') {
+                return Response::emptyBody(405, ['Allow' => 'POST']);
+            }
+            $service = new IngestService($this->config, $this->gateway, $this->clock);
+            return $service->handle($matches[1], $request);
+        }
+
+        if (preg_match('#^/i/([^/]*)$#', $path, $matches) === 1) {
+            if ($method !== 'GET' && $method !== 'HEAD') {
+                return Response::emptyBody(405, ['Allow' => 'GET']);
+            }
+            $service = new PublicInvoiceService($this->config, $this->gateway, $this->clock);
+            return $service->handle($matches[1], $request);
+        }
 
         return Response::emptyBody(404);
     }

@@ -76,7 +76,10 @@ try {
     header('X-Content-Type-Options: nosniff', true);
     header('Referrer-Policy: no-referrer', true);
     header('Content-Length: ' . strlen($response->body()), true);
-    echo $response->body();
+    // HEAD: identical headers (including Content-Length), empty body.
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') {
+        echo $response->body();
+    }
 } catch (ConfigException) {
     // Fail closed with a plain error — no details, no paths, no values (P-02 rule).
     http_response_code(500);

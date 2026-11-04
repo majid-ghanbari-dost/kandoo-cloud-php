@@ -3,3 +3,15 @@ D2. Production Cloud for the pilot = PHP 8.1+ and MariaDB 10.6 on a shared host 
 D3. All SMS are sent ONLY by the Cloud. The Hub never holds the SMS key.
 D4. SMS policy (provider confirmed): fixed notification pattern (no variables), OTP pattern (one variable "code"); limits: 2 OTP per number per rolling 24 h, 3 wrong entries per request, a device may use at most 3 numbers per day, per-IP limits. Domain/base address is configuration (a "base URL" setting), never hardcoded.
 D5. Hosting limits to design for: DB about 200-300 MB, about 2000 visits/day on the first plan, nightly DB backup by our own cron; the Cloud keeps only the public/compact form of each invoice (the Hub holds the master copy).
+
+## PHP Cloud implementation decisions (P-03)
+
+PD1. Jalali conversion is a self-contained PHP port of the Borkowski break algorithm, faithful to jalaali-js v2 (jalCal takes the JALAALI year; mathematical modulo). Verified anchors: 2024-03-20 → 1403/01/01, 2025-03-21 → 1404/01/01, 2026-01-02 → 1404/10/12 (no intl on shared hosts).
+PD2. Rate windows are fixed 1-minute buckets aligned to floor(unix/60)*60, counted in the database (atomic hit + prune by cron). Limit 0 disables. Ingest is keyed by normalized store id AFTER the route UUID parse; public is keyed by client IP. UNCONFIRMED: the frozen contract does not state keying/window details (U5) — values are conservative and configurable.
+PD3. Advertised ingest RateLimit-* headers stay the frozen fixed values (120/119/60) even under a custom configured limit — §5.2 records them as fixed advertised values; enforcement is separate.
+PD4. Wire entries must carry payload/outcome/response_snapshot as JSON objects (§5.4 13a); explicit nulls are envelope violations, matching the frozen DTO round-trip.
+PD5. Fingerprint handling: known (store_id,batch_id) with EQUAL fingerprint → natural DUPLICATE re-validation; with a DIFFERENT fingerprint → 409 IDEMPOTENCY_CONFLICT. No golden covers the conflict path — pinned by PHP tests only (flagged UNCONFIRMED in the report).
+PD6. Projection failures never enrich or guess: a strict rule violation rolls the whole batch back and answers the frozen INTERNAL_ERROR envelope; the silent-skip trigger (non-invoice operation types) keeps the projection exactly as delivered (D5/§7).
+PD7. The public page renders v1.1 fields ONLY when recorded; otherwise an explicit data-gap section names the missing fields (customer_name/payment_method) instead of inventing values (U14). Remaining balance is displayed as recorded, never computed.
+PD8. Golden replay harness (tests/Support/GoldenHarness.php) is gateway-agnostic: the same 23 cases run against MemoryGateway (local) and MariaDbGateway (CI) through one code path; divergences are reported explicitly, never absorbed. operation_id_count in effects means "operation ids carried by the batch" (g-002/g-003/g-006 all assert 2 across accept/duplicate/committed-retry).
+PD9. bin/cron.php prunes rate buckets older than the previous window every minute (idempotent; never touches contract data). bin/store.php provisions/throttles stores for operations (CLI-only, HTTP-guarded).

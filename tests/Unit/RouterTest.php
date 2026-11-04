@@ -47,10 +47,22 @@ final class RouterTest extends TestCase
 
     public function testUnknownPathIsGenericEmpty404(): void
     {
-        foreach (['/nope', '/v1/customers/123', '/api/otp/send', '/i/'] as $path) {
+        // Deferred endpoints (U12) and unknown paths share the generic empty 404.
+        foreach (['/nope', '/v1/customers/123', '/api/otp/send', '/i'] as $path) {
             $response = $this->kernel()->handle(new Request('GET', $path));
             $this->assertSame(404, $response->status(), "path $path");
             $this->assertSame('', $response->body(), "path $path");
         }
+    }
+
+    public function testContractRoutesRejectWrongMethodsWith405(): void
+    {
+        $kernel = $this->kernel();
+        $get = $kernel->handle(new Request('GET', '/v1/stores/11111111-1111-4111-8111-111111111111/operation-batches'));
+        $this->assertSame(405, $get->status());
+        $this->assertSame('POST', $get->header('Allow'));
+        $post = $kernel->handle(new Request('POST', '/i/AAAAAAAAAAAAAAAAAAAAAA', [], [], ''));
+        $this->assertSame(405, $post->status());
+        $this->assertSame('GET', $post->header('Allow'));
     }
 }
