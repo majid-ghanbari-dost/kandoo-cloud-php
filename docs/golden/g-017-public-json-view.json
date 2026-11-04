@@ -1,0 +1,77 @@
+{
+ "golden_version": "1.0",
+ "id": "G-017-PUBLIC-JSON-VIEW",
+ "title": "Public invoice JSON view by capability token (?format=json).",
+ "source": "Frozen .NET Cloud GET /i/{token} content negotiation + PostgresCloudStore.GetPublicInvoice + PublicInvoiceView DTO.",
+ "fake_data": true,
+ "fake_data_notice": "All identifiers, tokens, hashes, keys and phone numbers in this file are SYNTHETIC TEST FIXTURES (obviously fake: TEST-... values and fixed vector IDs). They are not production credentials and must never be accepted by production configuration.",
+ "notes": [
+  "The token is a capability secret; it must never appear in logs or error bodies.",
+  "issued_at is ISO-8601 with +00:00 offset (whole seconds in fixtures)."
+ ],
+ "given": {
+  "stores": [
+   {
+    "store_id": "11111111-1111-4111-8111-111111111111",
+    "active_writer_device_id": "22222222-2222-4222-8222-222222222222",
+    "active_writer_epoch": 3,
+    "accepted_through_seq": 40,
+    "entry_count": 40,
+    "head_entry_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "projection_version": 40,
+    "throttled": false
+   }
+  ],
+  "entries": [],
+  "batches": [],
+  "public_invoices": [
+   {
+    "public_token": "TEST-FAKE-TOKEN-0000001",
+    "public_token_hash": "ed170fe0821ea1b066dace847a3032a1377cd3740cab90b78be551cc12df0a6e",
+    "digital_invoice_id": "12121212-1212-4212-8212-121212121212",
+    "invoice_id": "33333333-3333-3333-3333-333333333333",
+    "store_id": "55555555-5555-5555-5555-555555555555",
+    "store_name": "TEST Store",
+    "display_number": 42,
+    "lifecycle_status": "ISSUED",
+    "issued_at_utc": "2026-01-02 03:04:05",
+    "issued_payload": {
+     "display_number": 42,
+     "invoice_id": "33333333-3333-3333-3333-333333333333"
+    },
+    "issued_content_sha256": "56b3eb90402c9cc3c820ce9573b73ceb72fe8f9c329306aeb87720ceeeb9343d",
+    "payable_rials": 1000,
+    "line_items": [
+     {
+      "product_name": "TEST <b>کالا</b>",
+      "quantity_millis": 1250,
+      "unit_price_rials": 800,
+      "line_total_rials": 1000
+     }
+    ],
+    "customer_phone": "+989120000001"
+   }
+  ]
+ },
+ "steps": [
+  {
+   "request": {
+    "method": "GET",
+    "path": "/i/TEST-FAKE-TOKEN-0000001?format=json",
+    "headers": {},
+    "body_text": ""
+   },
+   "response": {
+    "status": 200,
+    "headers": {
+     "content-type": "application/json; charset=utf-8",
+     "cache-control": "no-store",
+     "vary": "Accept"
+    },
+    "headers_match": "subset",
+    "body_match": "exact",
+    "body_text": "{\"product_name\":\"Kandoo digital invoice\",\"store_name\":\"TEST Store\",\"display_number\":42,\"lifecycle_status\":\"ISSUED\",\"issued_at\":\"2026-01-02T03:04:05+00:00\",\"digital_invoice\":{\"invoice_id\":\"33333333-3333-3333-3333-333333333333\",\"store_id\":\"55555555-5555-5555-5555-555555555555\",\"issued_payload\":{\"display_number\":42,\"invoice_id\":\"33333333-3333-3333-3333-333333333333\"},\"issued_content_sha256\":\"56b3eb90402c9cc3c820ce9573b73ceb72fe8f9c329306aeb87720ceeeb9343d\",\"issued_at\":\"2026-01-02T03:04:05+00:00\"},\"legal_copy\":{\"resource_id\":\"D14-PLACEHOLDER\",\"version\":\"0\",\"content\":\"D14 placeholder — needs lawyer approval\",\"signature\":\"NOT_SIGNED_NEEDS_LAWYER_APPROVAL\"},\"legal_copy_status\":\"needs lawyer approval\"}"
+   }
+  }
+ ]
+}

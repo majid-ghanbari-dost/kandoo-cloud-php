@@ -1,0 +1,34 @@
+# CI for the Kandoo Cloud PHP repo (فاکتور دیجیتال کندو / Kandoo Digital Invoice).
+# PM ORDER 9 standing rule: GitHub Actions, PHP 8.1 + MariaDB 10.6 service, running PHPUnit.
+# The docs job (P-01) validates contract documents and golden-pair self-consistency with no PHP needed.
+name: CI
+
+on:
+  push:
+    branches:
+      - arena/928d944b-kandoo-cloud-php
+      - main
+    tags:
+      - 'stable-*'
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Contract docs & golden self-consistency
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate schemas, golden pairs and canonical-hash fixtures
+        run: python3 tools/ci/validate_docs.py

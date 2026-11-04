@@ -1,0 +1,39 @@
+{
+ "golden_version": "1.0",
+ "id": "G-010-INGEST-STORE-NOT-FOUND",
+ "title": "Unknown store is refused before any batch semantics.",
+ "source": "PostgresCloudStore.Ingest: LoadState -> 404 STORE_NOT_FOUND.",
+ "fake_data": true,
+ "fake_data_notice": "All identifiers, tokens, hashes, keys and phone numbers in this file are SYNTHETIC TEST FIXTURES (obviously fake: TEST-... values and fixed vector IDs). They are not production credentials and must never be accepted by production configuration.",
+ "given": {
+  "stores": [],
+  "entries": [],
+  "batches": [],
+  "public_invoices": []
+ },
+ "steps": [
+  {
+   "request": {
+    "method": "POST",
+    "path": "/v1/stores/99999999-9999-4999-8999-999999999998/operation-batches",
+    "headers": {
+     "content-type": "application/json",
+     "idempotency-key": "TEST-batch-store-404"
+    },
+    "body_text": "{\"batch_id\":\"TEST-batch-store-404\",\"store_id\":\"99999999-9999-4999-8999-999999999998\",\"writer_device_id\":\"22222222-2222-4222-8222-222222222222\",\"writer_epoch\":1,\"entries\":[]}"
+   },
+   "response": {
+    "status": 404,
+    "headers": {
+     "content-type": "application/json; charset=utf-8",
+     "ratelimit-limit": "120",
+     "ratelimit-remaining": "119",
+     "ratelimit-reset": "60"
+    },
+    "headers_match": "subset",
+    "body_match": "exact",
+    "body_text": "{\"code\":\"STORE_NOT_FOUND\",\"message\":\"The store is not available in this scope.\",\"retry_hint\":{\"action\":\"NONE\"}}"
+   }
+  }
+ ]
+}

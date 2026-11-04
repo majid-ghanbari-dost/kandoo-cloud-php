@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/public-invoice-view.response.schema.json",
+  "title": "PublicInvoiceView — 200 JSON body of GET /i/{token}",
+  "description": "Anonymous capability read of exactly one issued public projection (فاکتور دیجیتال کندو / Kandoo Digital Invoice). Line items and payable are NOT part of the JSON view in v1.0 (HTML only). legal_copy carries the D14 placeholder constants — never a legal claim. Optional v1.1 fields (PROPOSED, UNCONFIRMED U14) are defined in v1-1/public-invoice-view-v1-1.schema.json.",
+  "type": "object",
+  "properties": {
+    "product_name": { "const": "Kandoo digital invoice" },
+    "store_name": { "type": "string", "minLength": 1 },
+    "display_number": { "type": "integer", "minimum": 1 },
+    "lifecycle_status": { "enum": ["ISSUED", "REVOKED", "SUPERSEDED"] },
+    "issued_at": { "$ref": "#/$defs/iso_offset_datetime" },
+    "digital_invoice": {
+      "type": "object",
+      "properties": {
+        "invoice_id": { "$ref": "#/$defs/uuid" },
+        "store_id": { "$ref": "#/$defs/uuid" },
+        "issued_payload": {
+          "type": "object",
+          "description": "Stored and returned exactly as delivered by the Hub; the Cloud never enriches or recomputes it. Frozen Hub shape: {\"display_number\":N,\"invoice_id\":\"<uuid>\"}."
+        },
+        "issued_content_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "issued_at": { "$ref": "#/$defs/iso_offset_datetime" }
+      },
+      "required": ["invoice_id", "store_id", "issued_payload", "issued_content_sha256", "issued_at"],
+      "additionalProperties": false
+    },
+    "legal_copy": {
+      "type": "object",
+      "properties": {
+        "resource_id": { "const": "D14-PLACEHOLDER" },
+        "version": { "const": "0" },
+        "content": { "const": "D14 placeholder — needs lawyer approval" },
+        "signature": { "const": "NOT_SIGNED_NEEDS_LAWYER_APPROVAL" }
+      },
+      "required": ["resource_id", "version", "content", "signature"],
+      "additionalProperties": false
+    },
+    "legal_copy_status": { "const": "needs lawyer approval" }
+  },
+  "required": [
+    "product_name", "store_name", "display_number", "lifecycle_status",
+    "issued_at", "digital_invoice", "legal_copy", "legal_copy_status"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "uuid": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$" },
+    "iso_offset_datetime": {
+      "type": "string",
+      "description": "ISO 8601 with explicit +00:00 offset; fractional seconds only when non-zero (UNCONFIRMED U9).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?\\+00:00$"
+    }
+  }
+}

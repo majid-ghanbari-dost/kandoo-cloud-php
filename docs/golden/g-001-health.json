@@ -1,0 +1,33 @@
+{
+ "golden_version": "1.0",
+ "id": "G-001-HEALTH",
+ "title": "Health probe returns a fixed JSON status.",
+ "source": "Frozen .NET Cloud Program.cs: app.MapGet(\"/health\", () => Results.Json(new { status = \"ok\" })).",
+ "fake_data": true,
+ "fake_data_notice": "All identifiers, tokens, hashes, keys and phone numbers in this file are SYNTHETIC TEST FIXTURES (obviously fake: TEST-... values and fixed vector IDs). They are not production credentials and must never be accepted by production configuration.",
+ "given": {
+  "stores": [],
+  "entries": [],
+  "batches": [],
+  "public_invoices": []
+ },
+ "steps": [
+  {
+   "request": {
+    "method": "GET",
+    "path": "/health",
+    "headers": {},
+    "body_text": ""
+   },
+   "response": {
+    "status": 200,
+    "headers": {
+     "content-type": "application/json; charset=utf-8"
+    },
+    "headers_match": "subset",
+    "body_match": "exact",
+    "body_text": "{\"status\":\"ok\"}"
+   }
+  }
+ ]
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/ingest-ack.response.schema.json",
+  "title": "IngestAck — 200 response of POST /v1/stores/{store_id}/operation-batches",
+  "description": "Frozen field order: batch_id, status, accepted_through_seq, ingested_count, duplicate_count, head_entry_hash, next_expected_seq, cloud_cursor. The Hub clears its durable outbox only when accepted_through_seq equals the last entry's operation_seq and head_entry_hash equals the last entry's entry_hash.",
+  "type": "object",
+  "properties": {
+    "batch_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["ACCEPTED", "DUPLICATE"] },
+    "accepted_through_seq": { "type": "integer", "minimum": 0 },
+    "ingested_count": { "type": "integer", "minimum": 0 },
+    "duplicate_count": { "type": "integer", "minimum": 0 },
+    "head_entry_hash": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
+    "next_expected_seq": { "type": "integer", "minimum": 1 },
+    "cloud_cursor": {
+      "type": ["string", "null"],
+      "description": "\"{store_id in 32-hex N form}:{accepted_through_seq}\" when new entries were appended, else null. Change-feed use only.",
+      "pattern": "^[0-9a-f]{32}:[0-9]+$"
+    }
+  },
+  "required": [
+    "batch_id", "status", "accepted_through_seq", "ingested_count",
+    "duplicate_count", "head_entry_hash", "next_expected_seq", "cloud_cursor"
+  ],
+  "additionalProperties": false
+}

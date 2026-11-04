@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/golden-case.schema.json",
+  "title": "Golden case file format (docs/golden/*.json)",
+  "description": "One golden request/response pair set per file, replayed by the P-04 contract tests against the PHP Cloud kernel. All fixture values are FAKE synthetic data (vector IDs / TEST-...). 'given' seeds the database; 'steps' replay requests in order and assert responses; 'effects' assert durable DB state afterwards. body_text values are byte-exact; request bodies are the exact bytes the Hub (or harness) sends.",
+  "type": "object",
+  "properties": {
+    "golden_version": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^G-[0-9]{3}-[A-Z0-9-]+$" },
+    "title": { "type": "string" },
+    "source": { "type": "string" },
+    "fake_data": { "const": true },
+    "fake_data_notice": { "type": "string" },
+    "config": {
+      "type": "object",
+      "description": "Per-case config overrides applied by the test harness (e.g. lower rate limit, enable legal-copy gate).",
+      "additionalProperties": true
+    },
+    "notes": { "type": "array", "items": { "type": "string" } },
+    "given": {
+      "type": "object",
+      "properties": {
+        "stores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "store_id": { "type": "string" },
+              "active_writer_device_id": { "type": "string" },
+              "active_writer_epoch": { "type": "integer" },
+              "accepted_through_seq": { "type": "integer" },
+              "entry_count": { "type": "integer" },
+              "head_entry_hash": { "type": ["string", "null"] },
+              "projection_version": { "type": "integer" },
+              "throttled": { "type": "boolean" }
+            },
+            "required": ["store_id", "active_writer_device_id", "active_writer_epoch", "accepted_through_seq", "entry_count", "head_entry_hash", "projection_version", "throttled"]
+          }
+        },
+        "entries": {
+          "type": "array",
+          "description": "Pre-stored cloud_entries rows: store_id plus the 16 LogEntry fields.",
+          "items": { "type": "object" }
+        },
+        "batches": {
+          "type": "array",
+          "description": "Pre-stored cloud_batches rows (fingerprint recomputed by the harness).",
+          "items": { "type": "object" }
+        },
+        "public_invoices": {
+          "type": "array",
+          "description": "Pre-stored public projection rows (public_token_hash recomputed by the harness when absent).",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["stores", "entries", "batches", "public_invoices"]
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "note": { "type": "string" },
+          "request": {
+            "type": "object",
+            "properties": {
+              "method": { "enum": ["GET", "POST"] },
+              "path": { "type": "string" },
+              "public_token_from": {
+                "type": "object",
+                "description": "Resolve {public_token} in path from the DB by store_id + invoice_id (tokens are server-generated and not predictable).",
+                "properties": {
+                  "store_id": { "type": "string" },
+                  "invoice_id": { "type": "string" }
+                },
+                "required": ["store_id", "invoice_id"]
+              },
+              "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+              "content_length": { "type": ["integer", "null"], "description": "Override the declared Content-Length seen by the kernel (frozen Cloud checks the declared header before parsing)." },
+              "body_text": { "type": "string" }
+            },
+            "required": ["method", "path", "headers", "body_text"]
+          },
+          "response": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "integer" },
+              "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+              "headers_match": { "const": "subset" },
+              "header_ranges": {
+                "type": "object",
+                "description": "Numeric headers asserted by inclusive range instead of exact value (e.g. retry-after).",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": { "type": "integer" },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              },
+              "body_match": { "enum": ["exact", "markers"] },
+              "body_text": { "type": "string", "description": "Byte-exact expected body (body_match=exact)." },
+              "body_markers": { "type": "array", "items": { "type": "string" } },
+              "body_markers_absent": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["status", "headers", "headers_match", "body_match"]
+          }
+        },
+        "required": ["request", "response"]
+      }
+    },
+    "effects": {
+      "type": "array",
+      "description": "Durable DB assertions after all steps.",
+      "items": { "type": "object" }
+    }
+  },
+  "required": ["golden_version", "id", "title", "source", "fake_data", "fake_data_notice", "given", "steps"]
+}

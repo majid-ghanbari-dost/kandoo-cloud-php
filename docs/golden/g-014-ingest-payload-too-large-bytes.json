@@ -1,0 +1,52 @@
+{
+ "golden_version": "1.0",
+ "id": "G-014-INGEST-PAYLOAD-TOO-LARGE-BYTES",
+ "title": "Declared body size above 1 MiB is refused before parsing.",
+ "source": "Program.cs: ContentLength > PostgresCloudStore.MaxBatchBytes -> 413 PAYLOAD_TOO_LARGE (no accepted_through_seq in hint at this boundary).",
+ "fake_data": true,
+ "fake_data_notice": "All identifiers, tokens, hashes, keys and phone numbers in this file are SYNTHETIC TEST FIXTURES (obviously fake: TEST-... values and fixed vector IDs). They are not production credentials and must never be accepted by production configuration.",
+ "given": {
+  "stores": [
+   {
+    "store_id": "11111111-1111-4111-8111-111111111111",
+    "active_writer_device_id": "22222222-2222-4222-8222-222222222222",
+    "active_writer_epoch": 3,
+    "accepted_through_seq": 40,
+    "entry_count": 40,
+    "head_entry_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "projection_version": 40,
+    "throttled": false
+   }
+  ],
+  "entries": [],
+  "batches": [],
+  "public_invoices": []
+ },
+ "steps": [
+  {
+   "note": "The frozen Cloud checks the declared Content-Length before deserialization; the harness injects the header value without a 1 MiB body.",
+   "request": {
+    "method": "POST",
+    "path": "/v1/stores/11111111-1111-4111-8111-111111111111/operation-batches",
+    "headers": {
+     "content-type": "application/json",
+     "idempotency-key": "batch-0001"
+    },
+    "content_length": 2000000,
+    "body_text": "{\"batch_id\":\"batch-0001\",\"entries\":[{\"base_version\":7,\"device_id\":\"33333333-3333-4333-8333-333333333333\",\"entry_hash\":\"ca15b6e0b3d101f57f9855c6e43871e4d5db6875d87a19b0b8b0ee8baa9975a8\",\"hub_recorded_at\":\"2026-10-22T08:01:00Z\",\"operation_id\":\"op-product-0001\",\"operation_seq\":41,\"operation_type\":\"product.update\",\"outcome\":{\"result_status\":\"SUCCEEDED\",\"version\":8},\"payload\":{\"product_id\":\"prod-0001\",\"unit_price_rials\":11000},\"previous_entry_hash\":\"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"protocol_version\":\"0\",\"request_hash\":\"8b6fcb64f008a9d921bf44fe7a9346eb6a8898fa569904942be8a9f36b3eb8a6\",\"response_snapshot\":{\"operation_seq\":41,\"status\":\"SUCCEEDED\",\"version\":8},\"store_id\":\"11111111-1111-4111-8111-111111111111\",\"writer_device_id\":\"22222222-2222-4222-8222-222222222222\",\"writer_epoch\":3},{\"base_version\":null,\"device_id\":\"44444444-4444-4444-8444-444444444444\",\"entry_hash\":\"fa0daab5586810444f1ecfb1ebf8f3f7e061a42630d77806a4e8d9aa3a98e502\",\"hub_recorded_at\":\"2026-10-22T08:02:00Z\",\"operation_id\":\"op-inventory-0002\",\"operation_seq\":42,\"operation_type\":\"inventory.append\",\"outcome\":{\"result_status\":\"SUCCEEDED\",\"stock_millis\":8000},\"payload\":{\"product_id\":\"prod-0001\",\"quantity_delta_millis\":-2000,\"reason\":\"SALE\"},\"previous_entry_hash\":\"ca15b6e0b3d101f57f9855c6e43871e4d5db6875d87a19b0b8b0ee8baa9975a8\",\"protocol_version\":\"0\",\"request_hash\":\"73f3ba984ec8ef70fc56be8e4067f3f00d57c41e6d93d07d39786013ff00a795\",\"response_snapshot\":{\"operation_seq\":42,\"status\":\"SUCCEEDED\",\"stock_millis\":8000},\"store_id\":\"11111111-1111-4111-8111-111111111111\",\"writer_device_id\":\"22222222-2222-4222-8222-222222222222\",\"writer_epoch\":3}],\"store_id\":\"11111111-1111-4111-8111-111111111111\",\"writer_device_id\":\"22222222-2222-4222-8222-222222222222\",\"writer_epoch\":3}"
+   },
+   "response": {
+    "status": 413,
+    "headers": {
+     "content-type": "application/json; charset=utf-8",
+     "ratelimit-limit": "120",
+     "ratelimit-remaining": "119",
+     "ratelimit-reset": "60"
+    },
+    "headers_match": "subset",
+    "body_match": "exact",
+    "body_text": "{\"code\":\"PAYLOAD_TOO_LARGE\",\"message\":\"The request exceeds the batch byte limit.\",\"retry_hint\":{\"action\":\"FIX_REQUEST\",\"max_batch_entries\":100,\"max_batch_bytes\":1048576}}"
+   }
+  }
+ ]
+}

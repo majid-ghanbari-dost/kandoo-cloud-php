@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/health.response.schema.json",
+  "title": "Health — 200 body of GET /health",
+  "type": "object",
+  "properties": {
+    "status": { "const": "ok" }
+  },
+  "required": ["status"],
+  "additionalProperties": false
+}
