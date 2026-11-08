@@ -37,6 +37,8 @@ jobs:
         run: python3 tools/ci/validate_docs.py
 
   phpunit:
+    env:
+      KANDOO_BLOCK_REAL_SMS: '1'
     name: PHPUnit (PHP 8.1 + MariaDB 10.6)
     runs-on: ubuntu-22.04
     permissions:

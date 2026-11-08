@@ -56,7 +56,8 @@ final class Kernel
 
         if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/')) {
             $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
-                $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock
+                $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock,
+                ($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null
             );
             return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true))->handle($request);
         }

@@ -52,6 +52,10 @@ return [
     // otp_pepper exclusively in config.php outside the repository. Telegram is optional.
     'customer_auth' => ['enabled' => false],
 
+    // Faraz is disabled by default; credentials and pattern identifiers belong in
+    // the external config only. Dry mode is permitted only in development/testing.
+    'faraz_sms' => ['enabled' => false],
+
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.
     'public_rate_limit_per_minute' => 60,

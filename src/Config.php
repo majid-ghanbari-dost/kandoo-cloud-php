@@ -173,6 +173,27 @@ final class Config
         }
         $config['customer_auth'] = $customerConfig;
 
+        $sms = $raw['faraz_sms'] ?? ['enabled' => false];
+        if (!is_array($sms) || !isset($sms['enabled']) || !is_bool($sms['enabled'])) {
+            throw new ConfigException('faraz_sms.enabled must be boolean.');
+        }
+        $config['faraz_sms'] = ['enabled' => $sms['enabled']];
+        if ($sms['enabled']) {
+            $dry = $sms['dry_run'] ?? true;
+            if (!is_bool($dry) || ($dry && !in_array($env, ['testing', 'development'], true))) {
+                throw new ConfigException('faraz_sms dry mode is only permitted in testing or development.');
+            }
+            $validatedSms = ['enabled' => true, 'dry_run' => $dry];
+            foreach (['api_key', 'line_number', 'announcement_pattern', 'otp_pattern'] as $name) {
+                $value = $sms[$name] ?? null;
+                if (!is_string($value) || $value === '' || strlen($value) > 256 || strpbrk($value, "\r\n") !== false) {
+                    throw new ConfigException("faraz_sms.$name must be a non-empty string without line breaks.");
+                }
+                $validatedSms[$name] = $value;
+            }
+            $config['faraz_sms'] = $validatedSms;
+        }
+
         return $config;
     }
 
