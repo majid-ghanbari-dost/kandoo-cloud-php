@@ -43,6 +43,10 @@ return [
     // Only development/testing may set this to true; never enable in production.
     'replication_auth_bypass' => false,
 
+    // Optional independent password_hash() digest, configured outside the repository.
+    // null disables administration, including the activation command.
+    'admin_password_hash' => null,
+
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.
     'public_rate_limit_per_minute' => 60,

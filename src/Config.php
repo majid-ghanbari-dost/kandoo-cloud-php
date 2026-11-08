@@ -102,6 +102,17 @@ final class Config
         }
         $config['replication_key'] = $key;
 
+        // Password hash is generated outside the repository with password_hash().
+        $adminHash = $raw['admin_password_hash'] ?? null;
+        if ($adminHash !== null && (!is_string($adminHash)
+            || (password_get_info($adminHash)['algoName'] ?? 'unknown') === 'unknown')) {
+            throw new ConfigException('admin_password_hash must be null or a password_hash digest.');
+        }
+        if ($adminHash !== null && is_string($key) && password_verify($key, $adminHash)) {
+            throw new ConfigException('The administrative password must differ from the replication key.');
+        }
+        $config['admin_password_hash'] = $adminHash;
+
         foreach (['public_rate_limit_per_minute' => 60, 'ingest_rate_limit_per_minute' => 120] as $name => $default) {
             $value = $raw[$name] ?? $default;
             if (!is_int($value) || $value < 0) {

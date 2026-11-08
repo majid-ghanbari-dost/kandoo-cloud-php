@@ -54,6 +54,34 @@ final class MariaDbGateway implements HarnessGateway
         $stmt->execute([$at, $deviceId]);
     }
 
+    public function isAdminEnabled(): bool
+    {
+        $value = $this->pdo()->query('SELECT enabled FROM cloud_admin_state WHERE singleton_id = 1')->fetchColumn();
+        return $value !== false && (int) $value === 1;
+    }
+
+    public function setAdminEnabled(bool $enabled, string $at): void
+    {
+        // State and audit entry must commit or roll back together.
+        $pdo = $this->pdo();
+        if ($pdo->inTransaction()) { throw new \LogicException('Admin transition needs its own transaction.'); }
+        $pdo->beginTransaction();
+        try {
+            $current = $pdo->query('SELECT enabled FROM cloud_admin_state WHERE singleton_id = 1 FOR UPDATE')->fetchColumn();
+            if ($current === false) { throw new \RuntimeException('Admin state missing.'); }
+            if ((bool) $current !== $enabled) {
+                $stmt = $pdo->prepare('UPDATE cloud_admin_state SET enabled = ? WHERE singleton_id = 1');
+                $stmt->execute([$enabled ? 1 : 0]);
+                $stmt = $pdo->prepare('INSERT INTO cloud_admin_events (event_type, occurred_at) VALUES (?, ?)');
+                $stmt->execute([$enabled ? 'enabled' : 'disabled', $at]);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
     // ── transactions ───────────────────────────────────────────────────────────
 
     public function beginTransaction(): void

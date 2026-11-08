@@ -48,6 +48,11 @@ final class Kernel
         $path = $request->path();
         $method = $request->method();
 
+        if ($path === '/admin' || $path === '/admin/') {
+            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway);
+            return $service->handle($request);
+        }
+
         if ($path === '/health') {
             if ($method !== 'GET') {
                 return Response::emptyBody(405, ['Allow' => 'GET']);

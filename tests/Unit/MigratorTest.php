@@ -21,6 +21,7 @@ final class MigratorTest extends DbTestCase
         $this->assertContains('0001_core.sql', $applied);
         $this->assertContains('0002_rate_limits.sql', $applied);
         $this->assertContains('0003_replication_devices.sql', $applied);
+        $this->assertContains('0004_admin.sql', $applied);
         $this->assertSame([], $migrator->pending());
         $this->assertSame([], $migrator->migrate()); // re-run is a no-op
     }
@@ -31,7 +32,7 @@ final class MigratorTest extends DbTestCase
         $tables = array_map('strval', $rows ?: []);
         foreach ([
             'schema_migrations', 'cloud_stores', 'cloud_entries', 'cloud_batches',
-            'public_invoices', 'public_rate_buckets', 'ingest_rate_buckets', 'cloud_replication_devices',
+            'public_invoices', 'public_rate_buckets', 'ingest_rate_buckets', 'cloud_replication_devices', 'cloud_admin_state', 'cloud_admin_events',
         ] as $table) {
             $this->assertContains($table, $tables);
         }

@@ -16,6 +16,22 @@ namespace Kandoo\Cloud\Store;
  */
 final class MemoryGateway implements HarnessGateway
 {
+    private bool $adminEnabled = false;
+    /** @var list<array{event_type: string, occurred_at: string}> */
+    private array $adminEvents = [];
+
+    public function isAdminEnabled(): bool { return $this->adminEnabled; }
+
+    public function setAdminEnabled(bool $enabled, string $at): void
+    {
+        if ($this->adminEnabled !== $enabled) {
+            $this->adminEvents[] = ['event_type' => $enabled ? 'enabled' : 'disabled', 'occurred_at' => $at];
+            $this->adminEnabled = $enabled;
+        }
+    }
+
+    public function adminEvents(): array { return $this->adminEvents; }
+
     /** @var array<string, array<string, mixed>> */
     private array $devices = [];
 
@@ -97,6 +113,8 @@ final class MemoryGateway implements HarnessGateway
     {
         $this->stores = [];
         $this->devices = [];
+        $this->adminEnabled = false;
+        $this->adminEvents = [];
         $this->entries = [];
         $this->batches = [];
         $this->projections = [];

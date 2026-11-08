@@ -31,6 +31,11 @@ interface StoreGateway
 
     public function touchDeviceAuthenticated(string $deviceId, string $at): void;
 
+    public function isAdminEnabled(): bool;
+
+    /** Atomically update state and append an event when the state changes. */
+    public function setAdminEnabled(bool $enabled, string $at): void;
+
     public function beginTransaction(): void;
 
     public function commit(): void;
