@@ -244,7 +244,8 @@ final class Projection
         if ($invoice->has('customer_name')) {
             $name = $invoice->get('customer_name');
             if ($name !== null) {
-                if (!is_string($name) || trim($name) === '' || strlen($name) > 255) {
+                $length = is_string($name) ? preg_match_all('/./us', $name) : false;
+                if (!is_string($name) || $length === false || $length < 1 || $length > 255) {
                     throw new ProjectionViolationException('PUBLIC_INVOICE_TEXT_INVALID');
                 }
                 $out['customer_name'] = $name;
@@ -258,7 +259,7 @@ final class Projection
                     throw new ProjectionViolationException('PUBLIC_INVOICE_PROJECTION_INVALID');
                 }
                 foreach ($payments as $payment) {
-                    if (!$payment instanceof JsonObject) {
+                    if (!$payment instanceof JsonObject || count($payment) !== 2 || !$payment->has('type') || !$payment->has('amount')) {
                         throw new ProjectionViolationException('PUBLIC_INVOICE_PROJECTION_INVALID');
                     }
                     $type = $payment->get('type');
