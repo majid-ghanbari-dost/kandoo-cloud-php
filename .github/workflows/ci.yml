@@ -90,6 +90,9 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
+      - name: Local in-process health load smoke test
+        run: php tools/dev/load-health.php
+
       - name: Sample self-test (isolated database, no live SMS)
         run: php bin/selftest.php --sample
 
