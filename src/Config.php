@@ -121,6 +121,11 @@ final class Config
             throw new ConfigException('env must be a non-empty string.');
         }
         $config['env'] = $env;
+        $bypass = $raw['replication_auth_bypass'] ?? false;
+        if (!is_bool($bypass) || ($bypass && !in_array($env, ['development', 'testing'], true))) {
+            throw new ConfigException('replication_auth_bypass is allowed only in development or testing.');
+        }
+        $config['replication_auth_bypass'] = $bypass;
 
         return $config;
     }

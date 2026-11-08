@@ -32,6 +32,28 @@ final class MariaDbGateway implements HarnessGateway
         return $this->db->pdo();
     }
 
+    public function insertDevice(string $deviceId, string $storeId, string $secretHash, string $registeredAt): void
+    {
+        $stmt = $this->pdo()->prepare('INSERT INTO cloud_replication_devices (device_id, store_id, secret_sha256, registered_at) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$deviceId, $storeId, $secretHash, $registeredAt]);
+    }
+
+    public function findDevice(string $deviceId): ?array
+    {
+        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE device_id = ?');
+        $stmt->execute([$deviceId]);
+        $row = $stmt->fetch();
+        if ($row === false) { return null; }
+        $row['verified'] = (bool) $row['verified'];
+        return $row;
+    }
+
+    public function touchDeviceAuthenticated(string $deviceId, string $at): void
+    {
+        $stmt = $this->pdo()->prepare('UPDATE cloud_replication_devices SET verified = 1, last_authenticated_at = ? WHERE device_id = ?');
+        $stmt->execute([$at, $deviceId]);
+    }
+
     // ── transactions ───────────────────────────────────────────────────────────
 
     public function beginTransaction(): void

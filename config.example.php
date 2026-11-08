@@ -40,6 +40,8 @@ return [
     //         (constant-time compare; mismatch → 401 UNAUTHENTICATED).
     // FAKE example value if you enable it: 'TEST-REPLICATION-KEY'.
     'replication_key' => null,
+    // Only development/testing may set this to true; never enable in production.
+    'replication_auth_bypass' => false,
 
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.

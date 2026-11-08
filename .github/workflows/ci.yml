@@ -9,8 +9,10 @@ on:
     branches:
       - arena/928d944b-kandoo-cloud-php
       - main
+      - arena/ae9da477-kandoo-cloud-php
     tags:
       - 'stable-*'
+      - 'w11-*'
   pull_request:
     branches:
       - main

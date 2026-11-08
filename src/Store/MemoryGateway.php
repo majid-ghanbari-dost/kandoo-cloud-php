@@ -16,6 +16,32 @@ namespace Kandoo\Cloud\Store;
  */
 final class MemoryGateway implements HarnessGateway
 {
+    /** @var array<string, array<string, mixed>> */
+    private array $devices = [];
+
+    public function insertDevice(string $deviceId, string $storeId, string $secretHash, string $registeredAt): void
+    {
+        if (isset($this->devices[$deviceId]) || !isset($this->stores[$storeId])) {
+            throw new \RuntimeException('Device registration failed.');
+        }
+        $this->devices[$deviceId] = ['device_id' => $deviceId, 'store_id' => $storeId,
+            'secret_sha256' => $secretHash, 'registered_at' => $registeredAt,
+            'last_authenticated_at' => null, 'verified' => false];
+    }
+
+    public function findDevice(string $deviceId): ?array
+    {
+        return $this->devices[$deviceId] ?? null;
+    }
+
+    public function touchDeviceAuthenticated(string $deviceId, string $at): void
+    {
+        if (isset($this->devices[$deviceId])) {
+            $this->devices[$deviceId]['verified'] = true;
+            $this->devices[$deviceId]['last_authenticated_at'] = $at;
+        }
+    }
+
     /** @var array<string, array<string, mixed>> store_id → row */
     private array $stores = [];
     /** @var array<string, list<array{operation_seq: int, operation_id: string, entry_hash: string, entry_json: string}>> */
@@ -70,6 +96,7 @@ final class MemoryGateway implements HarnessGateway
     public function reset(): void
     {
         $this->stores = [];
+        $this->devices = [];
         $this->entries = [];
         $this->batches = [];
         $this->projections = [];

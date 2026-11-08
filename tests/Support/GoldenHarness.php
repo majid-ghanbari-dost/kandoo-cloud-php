@@ -93,6 +93,7 @@ final class GoldenHarness
             'ingest_rate_limit_per_minute' => 120,
             'public_legal_copy_required' => false,
             'env' => 'testing',
+            'replication_auth_bypass' => true,
         ];
     }
 
