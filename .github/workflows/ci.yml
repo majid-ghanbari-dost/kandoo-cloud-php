@@ -90,6 +90,9 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
+      - name: Sample self-test (isolated database, no live SMS)
+        run: php bin/selftest.php --sample
+
       - name: PHPUnit (unit + contract suites; golden replay on memory AND MariaDB gateways)
         env:
           KANDOO_DB_TESTS: '1'
