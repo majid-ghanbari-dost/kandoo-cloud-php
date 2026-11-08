@@ -138,6 +138,41 @@ final class Config
         }
         $config['replication_auth_bypass'] = $bypass;
 
+        // Customer authentication is opt-in until its storage and delivery are configured.
+        // All policy numbers must be supplied explicitly by the operator.
+        $customer = $raw['customer_auth'] ?? ['enabled' => false];
+        if (!is_array($customer) || !isset($customer['enabled']) || !is_bool($customer['enabled'])) {
+            throw new ConfigException('customer_auth.enabled must be boolean.');
+        }
+        $customerConfig = ['enabled' => $customer['enabled']];
+        if ($customer['enabled']) {
+            if (!str_starts_with($config['base_url'], 'https://')) {
+                throw new ConfigException('Customer authentication requires HTTPS.');
+            }
+            foreach (['code_length', 'code_ttl_seconds', 'max_attempts', 'codes_per_announcement',
+                'issue_window_seconds', 'max_issues_per_window', 'session_ttl_seconds'] as $name) {
+                if (!isset($customer[$name]) || !is_int($customer[$name]) || $customer[$name] < 1) {
+                    throw new ConfigException("customer_auth.$name must be a positive integer.");
+                }
+                $customerConfig[$name] = $customer[$name];
+            }
+            if ($customerConfig['code_length'] < 6 || $customerConfig['code_length'] > 9
+                || $customerConfig['codes_per_announcement'] > 2) {
+                throw new ConfigException('Invalid customer OTP length or announcement cap.');
+            }
+            $pepper = $customer['otp_pepper'] ?? null;
+            if (!is_string($pepper) || strlen($pepper) < 32) {
+                throw new ConfigException('customer_auth.otp_pepper must be at least 32 bytes and configured outside the repository.');
+            }
+            $customerConfig['otp_pepper'] = $pepper;
+            $telegram = $customer['telegram_url'] ?? null;
+            if ($telegram !== null && (!is_string($telegram) || !str_starts_with($telegram, 'https://') || filter_var($telegram, FILTER_VALIDATE_URL) === false)) {
+                throw new ConfigException('customer_auth.telegram_url must be null or an HTTPS URL.');
+            }
+            $customerConfig['telegram_url'] = $telegram;
+        }
+        $config['customer_auth'] = $customerConfig;
+
         return $config;
     }
 

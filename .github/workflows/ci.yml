@@ -93,9 +93,12 @@ jobs:
           KANDOO_DB_TESTS: '1'
         run: |
           set +e
-          php phpunit.phar --configuration phpunit.xml.dist --debug 2>&1 | tee phpunit-output.txt
+          php phpunit.phar --configuration phpunit.xml.dist --debug --log-junit phpunit-results.xml 2>&1 | tee phpunit-output.txt
           status=${PIPESTATUS[0]}
           echo "PHPUnit exit code: $status" | tee -a phpunit-output.txt
+          if [ "$status" -eq 0 ]; then
+            python3 -c 'import xml.etree.ElementTree as E; r=E.parse("phpunit-results.xml"); s=r.findall(".//testcase/skipped"); print("Skipped tests:", len(s)); exit(bool(s))' || status=1
+          fi
           exit $status
 
       - name: On failure - post PHPUnit output as a commit comment (API-readable diagnostics)

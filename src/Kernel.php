@@ -38,6 +38,7 @@ final class Kernel
         private array $config,
         ?StoreGateway $gateway = null,
         ?Clock $clock = null,
+        private ?\Kandoo\Cloud\Customer\CustomerAuth $customerAuth = null,
     ) {
         $this->gateway = $gateway ?? new MariaDbGateway(new Database($config));
         $this->clock = $clock ?? new SystemClock();
@@ -51,6 +52,13 @@ final class Kernel
         if ($path === '/admin' || $path === '/admin/') {
             $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway);
             return $service->handle($request);
+        }
+
+        if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/')) {
+            $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
+                $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock
+            );
+            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true))->handle($request);
         }
 
         if ($path === '/health') {
