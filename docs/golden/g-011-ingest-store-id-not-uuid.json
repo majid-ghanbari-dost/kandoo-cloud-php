@@ -1,0 +1,38 @@
+{
+ "golden_version": "1.0",
+ "id": "G-011-INGEST-STORE-ID-NOT-UUID",
+ "title": "Non-UUID route store_id fails at the HTTP boundary.",
+ "source": "Program.cs: Guid.TryParse(route) -> 400 VALIDATION_ERROR \"store_id must be a UUID.\"",
+ "fake_data": true,
+ "fake_data_notice": "All identifiers, tokens, hashes, keys and phone numbers in this file are SYNTHETIC TEST FIXTURES (obviously fake: TEST-... values and fixed vector IDs). They are not production credentials and must never be accepted by production configuration.",
+ "given": {
+  "stores": [],
+  "entries": [],
+  "batches": [],
+  "public_invoices": []
+ },
+ "steps": [
+  {
+   "request": {
+    "method": "POST",
+    "path": "/v1/stores/not-a-uuid/operation-batches",
+    "headers": {
+     "content-type": "application/json"
+    },
+    "body_text": "{}"
+   },
+   "response": {
+    "status": 400,
+    "headers": {
+     "content-type": "application/json; charset=utf-8",
+     "ratelimit-limit": "120",
+     "ratelimit-remaining": "119",
+     "ratelimit-reset": "60"
+    },
+    "headers_match": "subset",
+    "body_match": "exact",
+    "body_text": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"store_id must be a UUID.\",\"retry_hint\":{\"action\":\"FIX_REQUEST\"}}"
+   }
+  }
+ ]
+}

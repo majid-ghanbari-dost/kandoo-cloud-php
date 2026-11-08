@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/error-response.schema.json",
+  "title": "Kandoo Cloud error envelope (فاکتور دیجیتال کندو / Kandoo Digital Invoice)",
+  "description": "Every non-2xx JSON response of the Cloud uses this envelope. retry_hint.action is always present and first; extra advisory hint fields follow.",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "minLength": 1,
+      "examples": [
+        "VALIDATION_ERROR", "IDEMPOTENCY_KEY_REQUIRED", "REQUEST_HASH_MISMATCH",
+        "INCOMPLETE_BATCH", "SEQUENCE_ORDER_VIOLATION", "ENTRY_HASH_MISMATCH",
+        "UNAUTHENTICATED", "STORE_NOT_FOUND", "PUBLIC_INVOICE_NOT_FOUND",
+        "IDEMPOTENCY_CONFLICT", "OPERATION_ID_CONFLICT", "WRITER_FENCED",
+        "GAP_DETECTED", "LOG_CONFLICT", "PAYLOAD_TOO_LARGE",
+        "PUBLIC_RATE_LIMITED", "RATE_LIMITED", "THROTTLED",
+        "INTERNAL_ERROR", "LEGAL_COPY_UNAVAILABLE", "SERVICE_UNAVAILABLE"
+      ]
+    },
+    "message": { "type": "string", "minLength": 1 },
+    "retry_hint": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["NONE", "FIX_REQUEST", "RETRY_SAME", "RETRY_AFTER", "RESUME_FROM_SEQUENCE", "REVIEW", "STOP_WRITER", "REAUTHENTICATE", "ENABLE_LEGAL_COPY"]
+        },
+        "expected_seq": { "type": "integer" },
+        "received_seq": { "type": "integer" },
+        "accepted_through_seq": { "type": "integer" },
+        "current_version": { "type": "integer" },
+        "retry_after_ms": { "type": "integer" },
+        "max_batch_entries": { "type": "integer" },
+        "max_batch_bytes": { "type": "integer" },
+        "details": {
+          "type": "object",
+          "properties": {
+            "expected_request_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "supplied_request_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "supplied_entry_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "recomputed_entry_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "quarantine": { "const": "REVIEW" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["action"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["code", "message", "retry_hint"],
+  "additionalProperties": false
+}

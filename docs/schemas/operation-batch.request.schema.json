@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kandoo.cloud/schemas/operation-batch.request.schema.json",
+  "title": "OperationBatch — Hub→Cloud replication request body (kandoo.sync.v0)",
+  "description": "Body of POST /v1/stores/{store_id}/operation-batches. Hash-bearing JSON: signed 64-bit integers only, no floats/exponents. Wire key order is irrelevant; hashes use the canonical P-02 profile (CLOUD-CONTRACT.md §5.5).",
+  "type": "object",
+  "properties": {
+    "batch_id": { "type": "string", "minLength": 1, "maxLength": 191 },
+    "store_id": { "$ref": "#/$defs/uuid" },
+    "writer_device_id": { "$ref": "#/$defs/uuid" },
+    "writer_epoch": { "type": "integer", "minimum": 1 },
+    "entries": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/log_entry" }
+        }
+      ]
+    }
+  },
+  "required": ["batch_id", "store_id", "writer_device_id", "writer_epoch"],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "description": "Lowercase 8-4-4-4-12 on the wire (the frozen stack also parses braces/N/P forms and normalizes; see UNCONFIRMED U13).",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "sha256_hex": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "log_entry": {
+      "type": "object",
+      "description": "One immutable Hub log entry (P-02 replication envelope). Unknown extra fields are ignored by DTO parsing and excluded from hashes.",
+      "properties": {
+        "protocol_version": { "const": "0" },
+        "store_id": { "$ref": "#/$defs/uuid" },
+        "writer_device_id": { "$ref": "#/$defs/uuid" },
+        "writer_epoch": { "type": "integer", "minimum": 1 },
+        "operation_seq": { "type": "integer", "minimum": 1 },
+        "previous_entry_hash": { "$ref": "#/$defs/sha256_hex" },
+        "entry_hash": { "$ref": "#/$defs/sha256_hex" },
+        "operation_id": { "type": "string", "minLength": 1 },
+        "device_id": { "$ref": "#/$defs/uuid" },
+        "operation_type": { "type": "string", "minLength": 1 },
+        "base_version": { "type": ["integer", "null"] },
+        "request_hash": { "$ref": "#/$defs/sha256_hex" },
+        "payload": { "type": "object" },
+        "outcome": { "type": "object" },
+        "response_snapshot": { "type": "object" },
+        "hub_recorded_at": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "protocol_version", "store_id", "writer_device_id", "writer_epoch",
+        "operation_seq", "previous_entry_hash", "entry_hash", "operation_id",
+        "device_id", "operation_type", "request_hash", "payload", "outcome",
+        "response_snapshot", "hub_recorded_at"
+      ]
+    }
+  }
+}

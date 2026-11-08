@@ -1,0 +1,15 @@
+# Real configuration lives OUTSIDE the web root and is NEVER committed (no credentials in any repo, ever).
+config.php
+
+# PHP/PHPUnit artifacts
+vendor/
+.phpunit.result.cache
+phpunit.xml
+phpunit.phar
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
