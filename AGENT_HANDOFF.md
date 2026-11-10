@@ -4,7 +4,7 @@ This document is maintained under standing order SO-01.
 
 ## Current task status
 
-Manager-authoritative status as supplied in SO-01/STEP-2-PHP rev.2; acceptance is the Coordination Manager's verdict, not a CI result.
+Manager-authoritative status as updated by W11-P101112-RECONCILE; acceptance is the Coordination Manager's verdict, not a CI result.
 
 | Task | Status | Tag | Commit |
 |---|---|---|---|
@@ -14,11 +14,11 @@ Manager-authoritative status as supplied in SO-01/STEP-2-PHP rev.2; acceptance i
 | P-08 | reported — awaiting PM GitHub spot-check | `w11-P-08` | `0e9aa38dce774ecf58d642bef6efc07884f3f466` |
 | P-09 | reported — awaiting PM GitHub spot-check | `w11-P-09` | `4794776d87944b1df4d240a243e4a237d89a99ec` |
 | T-DOC-C2C3 | delivered; manager review approved; report only, no repo change | none | none |
-| P-10 | queued, scope not yet announced | see blocker-record below | see blocker-record below |
-| P-11 | stretch, scope not yet announced | see blocker-record below | see blocker-record below |
-| P-12 | stretch, scope not yet announced | see blocker-record below | see blocker-record below |
+| P-10 | MUST per ORDER 11; delivered (`docs/DEPLOY-GUIDE-FA.md` + `bin/selftest.php` + `.github/workflows/ci.yml`); CI 42506759719 / 42506816795 green; reported, awaiting PM spot-check | `w11-P-10` | `c5011428643b49b43d2d0baa86ad692e6ff723d4` |
+| P-11 | STRETCH per ORDER 11 (CI load harness, 50–100 concurrent, error rate + p95); delivered in REDUCED scope: local in-process `/health` measurement, not a production-capacity benchmark (`docs/LOAD-P-11.md` + `tools/dev/load-health.php`); CI 42506890030 / 42506941285 green; reported-divergent (reduced scope), awaiting PM spot-check; manager leaning accept-as-partial for a stretch task with honest reporting | `w11-P-11` | `69ad7aa30ee8b062f25dab846df086c0787cbf6e` |
+| P-12 | STRETCH per ORDER 11 (handoff + tag ledger, always last); delivered as chat-only report + marker commit (same pattern as E-44 in the Python repo); durable handoff now lives in `AGENT_HANDOFF.md` under SO-01; empty marker commit; CI 42506994164 / 42507043719 green; delivered per pattern, awaiting PM spot-check | `w11-P-12` | `62c5558b9f1faf10ac5e305a340af21bc5d7fdc7` |
 
-**blocker-record — P-10/P-11/P-12 status discrepancy:** The manager-authoritative queue/scope statements above conflict with existing remote branch history and pinned tags. `w11-P-10` points to `c5011428643b49b43d2d0baa86ad692e6ff723d4` (shared-hosting guide and isolated sample self-test); `w11-P-11` points to `69ad7aa30ee8b062f25dab846df086c0787cbf6e` (local in-process health measurement); `w11-P-12` points to `62c5558b9f1faf10ac5e305a340af21bc5d7fdc7` (empty marker commit for chat-only report). Their tag CI runs were successful: [P-10](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/42506816795), [P-11](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/42506941285), [P-12](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/42507043719). CI success is not manager acceptance. Await manager reconciliation; do not move or recreate tags.
+Resolved 2026-11-10: PM ORDER 11 text provided by the PM; scopes were announced; ledger reconciled by the Coordination Manager.
 
 ## Decisions and open blockers
 
