@@ -23,13 +23,14 @@ final class V11DatabaseTest extends DbTestCase
         $headers=[]; foreach($f['steps'][0]['request']['headers'] as $key=>$value) { $headers[strtolower($key)]=$value; }
         foreach ([false,true] as $valid) {
             $batch=$base;
+            $batch['entries'][2]['response_snapshot']['response']['invoice']['invoice_schema_version']='1.1';
             $batch['entries'][2]['response_snapshot']['response']['invoice']['payments']=[['type'=>'cash','amount'=>$valid ? 12 : -1]];
             $batch['entries'][2]['response_snapshot']['response']['invoice']['remaining_balance']=4;
             $entry=$batch['entries'][2];
             $dto=Canonical::entryDto(Parser::parse((string)json_encode($entry,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)));
             $batch['entries'][2]['entry_hash']=Canonical::entryHash($dto);
             $response=$kernel->handle(new Request('POST',$f['steps'][0]['request']['path'],$headers,[],(string)json_encode($batch,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)));
-            $this->assertSame($valid ? 200 : 500,$response->status());
+            $this->assertSame($valid ? 200 : 400,$response->status());
             $this->assertCount($valid ? 3 : 0,$gateway->entriesOf($batch['store_id']));
             $rows=$gateway->projectionsOf($batch['store_id']); $this->assertCount($valid ? 1 : 0,$rows);
             if ($valid) { $this->assertSame(4,$rows[0]['remaining_balance']); $this->assertSame('[{"type":"cash","amount":12}]',$rows[0]['payments']); }

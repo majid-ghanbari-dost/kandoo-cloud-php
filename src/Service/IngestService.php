@@ -254,6 +254,11 @@ final class IngestService
                 ));
             }
 
+            // Addendum C4: validate each explicitly versioned invoice before any mutation.
+            if (!Projection::validInvoiceExtension($dto)) {
+                return $this->fail(Envelopes::invoiceExtensionInvalid());
+            }
+
             $recomputedHashes[$index] = $entryHash;
             $previousDto = $dto;
         }

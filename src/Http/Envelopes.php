@@ -38,6 +38,11 @@ final class Envelopes
         return self::error(400, 'VALIDATION_ERROR', 'An entry is outside the store, writer, or P-02 envelope contract.', ['action' => 'FIX_REQUEST']);
     }
 
+    public static function invoiceExtensionInvalid(): array
+    {
+        return self::error(400, 'VALIDATION_ERROR', 'The invoice version marker or v1.1 fields are invalid.', ['action' => 'FIX_REQUEST']);
+    }
+
     public static function batchIntegerProfile(): array
     {
         return self::error(400, 'VALIDATION_ERROR', 'The batch contains a value outside the integer JSON profile.', ['action' => 'FIX_REQUEST']);

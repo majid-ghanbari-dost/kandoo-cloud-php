@@ -154,8 +154,10 @@ final class Projection
             break; // earliest matching successful draft wins
         }
 
-        // ── proposed v1.1 passthrough (§11, U14): recorded as delivered, never computed ─
-        $v11 = self::v11Passthrough($invoice);
+        // ── explicit v1.1 passthrough: recorded as delivered, never computed ─
+        $v11 = $invoice->get('invoice_schema_version') === '1.1'
+            ? self::v11Passthrough($invoice)
+            : ['customer_name' => null, 'payments' => null, 'currency_unit' => null, 'remaining_balance' => null];
 
         // ── build and insert the projection row (first write wins; no token re-mint) ─
         $token = RandomToken::generate();
@@ -176,6 +178,27 @@ final class Projection
             'customer_phone' => $customerPhone,
         ], $v11);
         $gateway->insertProjectionIgnore($row);
+    }
+
+    /** Validate the version marker and, for explicit v1.1, its recorded fields. */
+    public static function validInvoiceExtension(JsonObject $entryDto): bool
+    {
+        $snapshot = $entryDto->get('response_snapshot');
+        $response = $snapshot instanceof JsonObject ? $snapshot->get('response') : null;
+        $invoice = $response instanceof JsonObject ? $response->get('invoice') : null;
+        if (!$invoice instanceof JsonObject || !$invoice->has('invoice_schema_version')) {
+            // Marker absence is legacy, regardless of field presence.
+            return true;
+        }
+        if ($invoice->get('invoice_schema_version') !== '1.1') {
+            return false;
+        }
+        try {
+            self::v11Passthrough($invoice);
+            return true;
+        } catch (ProjectionViolationException) {
+            return false;
+        }
     }
 
     private static function parseStoredEntry(string $entryJson): ?JsonObject
