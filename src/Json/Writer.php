@@ -15,7 +15,8 @@ namespace Kandoo\Cloud\Json;
  *                         issued_content_sha256).
  *
  * Escaping mirrors JavaScriptEncoder.UnsafeRelaxedJsonEscaping: `"` → \" , `\` → \\ ,
- * \b \f \n \r \t short forms, remaining U+0000–U+001F as \u00XX with UPPERCASE hex,
+ * Canonical mode escapes every U+0000–U+001F as \u00XX with UPPERCASE hex;
+ * preserve mode retains the historical short forms for \b \f \n \r \t,
  * U+007F as \u007F, everything else (including all non-ASCII/Persian text) written raw —
  * never \u-escaped. No insignificant whitespace. Plain PHP ints are written as plain
  * decimal; JsonNumber nodes are raw passthrough in preserve mode and an integer-profile
@@ -45,7 +46,7 @@ final class Writer
             }
             $parts = [];
             foreach ($pairs as [$key, $value]) {
-                $parts[] = self::writeString($key) . ':' . self::write($value, $canonical);
+                $parts[] = self::writeString($key, $canonical) . ':' . self::write($value, $canonical);
             }
             return '{' . implode(',', $parts) . '}';
         }
@@ -59,7 +60,7 @@ final class Writer
             return (string) $node;
         }
         if (is_string($node)) {
-            return self::writeString($node);
+            return self::writeString($node, $canonical);
         }
         if (is_array($node)) {
             if ($node === [] || array_is_list($node)) {
@@ -88,13 +89,17 @@ final class Writer
         throw new IntegerProfileException('Unsupported node type: ' . get_debug_type($node));
     }
 
-    private static function writeString(string $s): string
+    private static function writeString(string $s, bool $canonical): string
     {
         $out = '"';
         $len = strlen($s);
         for ($i = 0; $i < $len; $i++) {
             $ch = $s[$i];
             $ord = ord($ch);
+            if ($canonical && ($ord < 0x20 || $ord === 0x7F)) {
+                $out .= sprintf('\\u%04X', $ord);
+                continue;
+            }
             switch ($ord) {
                 case 0x22: $out .= '\\"'; break;
                 case 0x5C: $out .= '\\\\'; break;
