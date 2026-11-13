@@ -13,6 +13,7 @@ on:
     tags:
       - 'stable-*'
       - 'w11-*'
+      - 'o14-P-*'
   pull_request:
     branches:
       - main
@@ -30,6 +31,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -41,11 +44,6 @@ jobs:
       KANDOO_BLOCK_REAL_SMS: '1'
     name: PHPUnit (PHP 8.1 + MariaDB 10.6)
     runs-on: ubuntu-22.04
-    permissions:
-      # contents:write ONLY so the failure-diagnostics step below can post the PHPUnit
-      # output as a commit comment (runner log blobs are not reachable from every
-      # environment; comments are readable through the GitHub API).
-      contents: write
     services:
       mariadb:
         image: mariadb:10.6
@@ -64,6 +62,8 @@ jobs:
           --health-retries=30
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP 8.1
         uses: shivammathur/setup-php@v2
@@ -105,19 +105,32 @@ jobs:
           status=${PIPESTATUS[0]}
           echo "PHPUnit exit code: $status" | tee -a phpunit-output.txt
           if [ "$status" -eq 0 ]; then
-            python3 -c 'import xml.etree.ElementTree as E; r=E.parse("phpunit-results.xml"); s=r.findall(".//testcase/skipped"); print("Skipped tests:", len(s)); exit(bool(s))' || status=1
+            python3 -c 'import xml.etree.ElementTree as E; r=E.parse("phpunit-results.xml"); s=r.findall(".//testcase/skipped"); print("Skipped tests:", len(s)); exit(bool(s))' 2>&1 | tee -a phpunit-output.txt
+            [ "${PIPESTATUS[0]}" -eq 0 ] || status=1
           fi
           exit $status
 
-      - name: On failure - post PHPUnit output as a commit comment (API-readable diagnostics)
+      - name: Annotate PHPUnit failures
         if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          tail -c 60000 phpunit-output.txt > phpunit-tail.txt || true
-          {
-            printf 'PHPUnit diagnostics for `%s` (run %s)\n\n```\n' "${{ github.sha }}" "${{ github.run_id }}"
-            cat phpunit-tail.txt 2>/dev/null || echo '(no phpunit output captured - failure happened earlier)'
-            printf '\n```\n'
-          } > comment-body.md
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments"             -F body=@comment-body.md --jq '.html_url' || echo 'COMMENT POST FAILED'
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          output = Path('phpunit-output.txt')
+          if output.exists():
+              text = output.read_text(encoding='utf-8', errors='replace')
+              for line in text.splitlines():
+                  line = line.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error::' + line)
+          else:
+              print('::error::PHPUnit output unavailable; a prior step failed.')
+          PYCODE
+
+      - name: Upload full PHPUnit output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-output
+          path: |
+            phpunit-output.txt
+            phpunit-results.xml
+          if-no-files-found: warn

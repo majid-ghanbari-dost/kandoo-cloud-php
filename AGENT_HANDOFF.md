@@ -2,6 +2,12 @@
 
 This document is maintained under standing order SO-01.
 
+## ORDER 14 status
+
+- Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
+- P-13: CI security changes in this commit; verify green CI before creating `o14-P-13`. P-14 through P-18 are ordered sequentially and pending.
+- D-J: no production data exists; the pinned U7 profile applies from now and shared parity vectors are required. Full D-A through D-K are to be appended to `docs/DECISIONS.md` in P-17 without deleting history.
+
 ## Current task status
 
 W11-P-CLOSEOUT: the PHP W11 axis is code-complete and accepted by the Coordination Manager; the window is closing. Acceptance is the manager verdict, not merely a CI result.
