@@ -30,3 +30,29 @@ D-H Hosting for the pilot: shared host E1 class (PHP 8.1+, MariaDB, cron every m
 2026-11-10 - Contract Addendum v1.1 (KANDOO-ADDENDUM-V1-1, docs/CONTRACT-ADDENDUM-V1-1.md, 7,841 bytes, sha256 4206c23f18fa4cc2f1f5f216099aec51a3ab6480eabf8af07b16863c0c385e69) APPROVED NORMATIVE by Product Owner reply (relayed by PM). U7 closed as option (b): conservative escaping profile pinned for both stacks (uppercase \u00XX, DEL as \u007F) plus shared cross-stack golden vectors including control characters, DEL, Persian text with ZWNJ (U+200C), and the Arabic letters yeh (U+064A) and kaf (U+0643). E-40/E-42/E-43 and C-45b resume on delivery per addendum section 7.3.
 
 Pinned schemas verified already present in-repo at docs/schemas/v1-1/ (byte-identical to the addendum section 2.1 references; no schema commit needed).
+
+## ORDER 14 Product Owner decisions — current (D-A through D-K)
+
+These decisions supplement earlier history without deleting it; where older summaries differ, the current decision below applies. The frozen contract is changed only via an approved addendum.
+
+**D-A — Application and identity.** One app supports store, customer, or both, with switching. Customer mode is Android-only for now. Identity is a verified mobile number.
+
+**D-B — PRODUCTION REPLICATION AUTHENTICATION IS MANDATORY.** Each device has its own secret scoped to its store; the Hub is the only device in the MVP. This is transport authentication, not business-licence verification. Test-only disabling does not authorize disabling production authentication.
+
+**D-C — Customer OTP.** A code may be requested only when an invoice exists for the number. Each delivered invoice notification grants two codes; thereafter direct the customer to Telegram/support and allow the Product Owner to reset the number's counter in admin. Remember a verified device with configurable lifetime and revocation. Lock a challenge after three wrong entries; limit each device to three different numbers per day and enforce separate per-IP request and verification limits. All limits are configurable; customer authentication is off by default.
+
+**D-D — Faraz SMS.** Cloud sends SMS using one fixed notification pattern without per-invoice link variables and an OTP pattern with the single code variable. POST `https://api.iranpayamak.com/ws/v1/sms/pattern` with `Api-Key`; pattern codes, line number, key and base URL are configurable. There is no sandbox and no IP allow-list. Provider acceptance is not proof of delivery.
+
+**D-E — Products.** Numeric tag is only an identifier; group/subgroup is optional and two-level. Purchase price and Holoo old code are optional.
+
+**D-F — Holoo.** With store manager consent prefer direct read-only SQL Server access; print capture is the fallback. FastReport `.fr3` thermal print and FACTURE/FACTART/CUSTOMER/ARTICLE are relevant. `Sum_Price = FNaghd + FCheck + FNesieh + Card + Takhfif`; walk-in customer 00001 is approximately 87%; use one non-stock service article.
+
+**D-G — Permissions.** Seller handles invoices; operator handles invoices and products; manager has all permissions and alone sees profit.
+
+**D-H — Hosting.** Shared-host E1 class for the pilot; purchase only at launch readiness.
+
+**D-I — Window scope.** E-43 is waived for this window; E-47 and H-2 are the basis.
+
+**D-J — Canonical profile.** No production data exists. The pinned conservative U7 profile applies from now to canonical hashing of all payloads: uppercase `\\u00XX` controls and `\\u007F` DEL. Regenerate prior test fixtures from the shared vectors and require PHP/C# parity; no implicit v1.1 gate.
+
+**D-K — AI boundaries.** `kando-internal-ai-v01` is frozen; `kandoo-internal-engine-v1` is a separate agent outside this order.
