@@ -53,6 +53,6 @@ These decisions supplement earlier history without deleting it; where older summ
 
 **D-I — Window scope.** E-43 is waived for this window; E-47 and H-2 are the basis.
 
-**D-J — Canonical profile.** No production data exists. The pinned conservative U7 profile applies from now to canonical hashing of all payloads: uppercase `\\u00XX` controls and `\\u007F` DEL. Regenerate prior test fixtures from the shared vectors and require PHP/C# parity; no implicit v1.1 gate.
+**D-J — Canonical profile.** No production data exists. The pinned conservative U7 profile applies from now to canonical hashing of all payloads: uppercase `\u00XX` controls and `\u007F` DEL. Regenerate prior test fixtures from the shared vectors and require PHP/C# parity; no implicit v1.1 gate.
 
 **D-K — AI boundaries.** `kando-internal-ai-v01` is frozen; `kandoo-internal-engine-v1` is a separate agent outside this order.
