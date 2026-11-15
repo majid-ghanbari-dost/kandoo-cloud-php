@@ -5,7 +5,7 @@ This document is maintained under standing order SO-01.
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
-- P-13: delivered, tag `o14-P-13` -> `7994de85591c504d12ec4a0b2f9e8074fd2c611b`; branch CI 43395803883 and tag CI 43395902795 green. P-14 implementation and tests are in the commit following this update; customer auth stays default-off. CI and the o14-P-14 tag must be verified before treating delivery as complete. Device identifiers are cookie/token based and may be replaced; per-IP limits use the trusted direct peer only. P-15 through P-18 are pending; no acceptance verdict claimed.
+- P-13 and P-14 are delivered and manager accepted. Customer auth stays default-off; device identifiers are replaceable cookies/tokens and per-IP limits use the direct peer only. P-15 remains blocked pending a PM ruling; P-16 and P-17 delivered and P-18 handoff below records the reordered closeout. Green CI is not manager acceptance for P-16 or P-17.
 - D-J: no production data exists; the pinned U7 profile applies from now and shared parity vectors are required. Full D-A through D-K are to be appended to `docs/DECISIONS.md` in P-17 without deleting history.
 
 ## O14 continuation — P-15 blocker
@@ -15,7 +15,20 @@ This document is maintained under standing order SO-01.
 
 - P-16: 57 vectors in `docs/vectors/canonical-vectors-v1.json`, including unchanged V1–V12, all controls, DEL, Unicode and int64 boundaries. PHP parity test uses that file. Branch CI 43690071248 and tag CI 43690115611 green; `o14-P-16` -> `76bb3a6ec6de1eb64067806dab0ed5183a736574`. Full vector file reported in one code fence for C# C-66.
 
-- P-17: append-only D-A..D-K current decisions in `docs/DECISIONS.md`, explicitly highlighting D-B; CI and tag pending. P-18 follows; P-15 remains blocked.
+- P-17: append-only D-A..D-K current decisions in `docs/DECISIONS.md`, explicitly highlighting D-B; `o14-P-17` -> `09b412dcd5ce2aad0c02ef048668aca3cbb14a80`; branch CI 43690282296 and tag CI 43690341208 green. P-15 remains blocked.
+
+## ORDER 14 reordered handoff and tag ledger (P-18)
+
+| Task | Status | Tag | Full commit | Personally inspected green CI |
+|---|---|---|---|---|
+| P-13 | manager accepted | `o14-P-13` | `7994de85591c504d12ec4a0b2f9e8074fd2c611b` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43395902795 |
+| P-14 | manager accepted | `o14-P-14` | `4606188dc4725a727c1182687180da25b6d53fe1` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43687728002 |
+| P-15 | blocked; PM ruling requested | none | none | none |
+| P-16 | delivered; manager acceptance pending | `o14-P-16` | `76bb3a6ec6de1eb64067806dab0ed5183a736574` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690115611 |
+| P-17 | delivered; manager acceptance pending | `o14-P-17` | `09b412dcd5ce2aad0c02ef048668aca3cbb14a80` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690341208 |
+| P-18 | this handoff commit; branch CI and tag CI must be verified after commit | `o14-P-18` after green branch CI | resolve tag to this commit | report actual run URLs externally after they exist |
+
+P-16 file `docs/vectors/canonical-vectors-v1.json` has 57 vectors and is independent of P-15; complete contents were sent in chat for C# C-66. P-17 only adds decisions and corrects escape notation, preserving history. Resume P-15 when the PM ruling arrives; until then ORDER 14 is not fully complete. Do not start ORDER 15. PR #2 stays untouched. Do not claim manager acceptance for items not explicitly accepted. Preserve existing tags and frozen contract. This ledger intentionally avoids an impossible self-referential P-18 commit SHA or a future CI result; the tag and closeout report supply these once created.
 
 ## Current task status
 
