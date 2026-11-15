@@ -5,7 +5,7 @@ This document is maintained under standing order SO-01.
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
-- P-13: delivered, tag `o14-P-13` -> `7994de85591c504d12ec4a0b2f9e8074fd2c611b`; branch CI 43395803883 and tag CI 43395902795 green. P-14 through P-18 are ordered sequentially and pending; no acceptance verdict claimed.
+- P-13: delivered, tag `o14-P-13` -> `7994de85591c504d12ec4a0b2f9e8074fd2c611b`; branch CI 43395803883 and tag CI 43395902795 green. P-14 is in progress: remembered-session login redirect and revocation/logout are uncommitted worktree changes; per-device number limits, per-IP controls, admin OTP reset, full DB tests and green CI remain outstanding. P-15 through P-18 are pending; no acceptance verdict claimed.
 - D-J: no production data exists; the pinned U7 profile applies from now and shared parity vectors are required. Full D-A through D-K are to be appended to `docs/DECISIONS.md` in P-17 without deleting history.
 
 ## Current task status
