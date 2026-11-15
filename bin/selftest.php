@@ -61,8 +61,8 @@ try {
     $fake=new class implements OtpTransport { public string $code=''; public function sendCode(string $phone,string $code): bool { $this->code=$code; return true; } };
     $customer=['enabled'=>true,'code_length'=>6,'code_ttl_seconds'=>300,'max_attempts'=>5,'codes_per_announcement'=>2,'issue_window_seconds'=>900,'max_issues_per_window'=>3,'session_ttl_seconds'=>3600,'otp_pepper'=>'TEST-selftest-otp-pepper-not-a-real-secret','telegram_url'=>null];
     $idem='TEST-selftest-'.RandomToken::uuidV4();
-    $auth=new CustomerAuth($customer,$db,$clock,$fake); $issued=$auth->issue($phone,$idem);
-    $verified=($issued['status']??'')==='OTP_SENT' ? $auth->verify($issued['challenge_id'],$fake->code) : ['status'=>'INVALID'];
+    $auth=new CustomerAuth($customer,$db,$clock,$fake); $sampleDevice=\Kandoo\Cloud\Customer\OtpSecrets::sessionToken(); $issued=$auth->issue($phone,$idem,$sampleDevice);
+    $verified=($issued['status']??'')==='OTP_SENT' ? $auth->verify($issued['challenge_id'],$fake->code,$sampleDevice) : ['status'=>'INVALID'];
     $session=$verified['token']??'';
     $check(($verified['status']??'')==='OK' && $auth->phoneForToken($session)===$phone && count($auth->invoices($phone))>=1 && $auth->invoice($phone,$store,$invoice)!==null, 'customer login and invoice');
     echo "SELFTEST PASS (isolated sample; no live SMS)\n";
@@ -75,6 +75,7 @@ try {
             if ($phone !== null) { $q=$pdo->prepare('DELETE FROM cloud_customer_sessions WHERE phone=?'); $q->execute([$phone]); }
             $q=$pdo->prepare('DELETE FROM cloud_stores WHERE store_id=?'); $q->execute([$store]);
             if ($phone !== null) { $q=$pdo->prepare('DELETE FROM cloud_customer_phones WHERE phone=?'); $q->execute([$phone]); }
+            if (isset($sampleDevice)) { $q=$pdo->prepare('DELETE FROM cloud_customer_devices WHERE device_hash=?'); $q->execute([hash_hmac('sha256',$sampleDevice,'TEST-selftest-otp-pepper-not-a-real-secret')]); }
             if ($idem !== null) { $q=$pdo->prepare('DELETE FROM cloud_otp_idempotency_locks WHERE idempotency_hash=?'); $q->execute([hash_hmac('sha256',$idem,'TEST-selftest-otp-pepper-not-a-real-secret')]); }
         } catch (Throwable $e) { fwrite(STDERR, "SELFTEST CLEANUP FAILED\n"); $failed=true; }
     }

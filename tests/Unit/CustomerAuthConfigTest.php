@@ -17,7 +17,7 @@ final class CustomerAuthConfigTest extends TestCase
             'customer_auth' => ['enabled' => true, 'code_length' => 6,
                 'code_ttl_seconds' => 300, 'max_attempts' => 5, 'codes_per_announcement' => 2,
                 'issue_window_seconds' => 900, 'max_issues_per_window' => 3,
-                'session_ttl_seconds' => 2592000, 'otp_pepper' => 'TEST-only-synthetic-otp-pepper-0123456789', 'telegram_url' => null]];
+                'session_ttl_seconds' => 2592000, 'device_numbers_per_day'=>3, 'device_ttl_seconds'=>2592000, 'issue_ip_limit_per_minute'=>10, 'verify_ip_limit_per_minute'=>20, 'otp_pepper' => 'TEST-only-synthetic-otp-pepper-0123456789', 'telegram_url' => null]];
     }
 
     public function testConfigurationIsExplicitAndDisabledByDefault(): void

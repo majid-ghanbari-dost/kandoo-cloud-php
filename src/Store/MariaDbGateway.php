@@ -300,6 +300,8 @@ final class MariaDbGateway implements HarnessGateway
         return match ($scope) {
             'public' => 'public_rate_buckets',
             'ingest' => 'ingest_rate_buckets',
+            'customer_issue' => 'customer_issue_rate_buckets',
+            'customer_verify' => 'customer_verify_rate_buckets',
             default => throw new \InvalidArgumentException('Unknown rate-limit scope.'),
         };
     }
@@ -331,7 +333,7 @@ final class MariaDbGateway implements HarnessGateway
 
     public function pruneRateBuckets(int $olderThanWindowStart): void
     {
-        foreach (['public_rate_buckets', 'ingest_rate_buckets'] as $table) {
+        foreach (['public_rate_buckets', 'ingest_rate_buckets', 'customer_issue_rate_buckets', 'customer_verify_rate_buckets'] as $table) {
             $stmt = $this->pdo()->prepare("DELETE FROM $table WHERE window_start < ?");
             $stmt->execute([$olderThanWindowStart]);
         }

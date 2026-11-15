@@ -24,6 +24,7 @@ final class MigratorTest extends DbTestCase
         $this->assertContains('0004_admin.sql', $applied);
         $this->assertContains('0005_customer_auth.sql', $applied);
         $this->assertContains('0006_sms_requests.sql', $applied);
+        $this->assertContains('0007_customer_controls.sql', $applied);
         $this->assertSame([], $migrator->pending());
         $this->assertSame([], $migrator->migrate()); // re-run is a no-op
     }

@@ -60,4 +60,24 @@ final class AdminTest extends TestCase
             $this->fail('Expected separate passwords.');
         } catch (ConfigException $e) { $this->assertTrue(true); }
     }
+
+    public function testOtpBudgetResetRequiresAdminCsrfAndSameOrigin(): void
+    {
+        $password='TEST-admin-pass'; $hash=password_hash($password,PASSWORD_DEFAULT);
+        $gateway=new MemoryGateway(); $config=$this->config($hash);
+        (new AdminManager($config,$gateway))->transition(true,$password,'2026-01-01 00:00:00');
+        $calls=[];
+        $service=new \Kandoo\Cloud\Service\AdminService($config,$gateway,static function(string $phone) use (&$calls): bool { $calls[]=$phone; return true; });
+        $authorization='Basic '.base64_encode('admin:'.$password);
+        $get=$service->handle(new Request('GET','/admin',['authorization'=>$authorization]));
+        preg_match('/kandoo_admin_csrf=([^;]+)/',$get->header('Set-Cookie'),$match);
+        $csrf=$match[1]; $body=http_build_query(['csrf'=>$csrf,'phone'=>'+989120000001']);
+        $headers=['authorization'=>$authorization,'cookie'=>'kandoo_admin_csrf='.$csrf,'origin'=>'https://TEST.invalid'];
+        $this->assertSame(401,$service->handle(new Request('POST','/admin',['cookie'=>$headers['cookie'],'origin'=>$headers['origin']],[],$body))->status());
+        $this->assertSame(403,$service->handle(new Request('POST','/admin',array_merge($headers,['origin'=>'https://attacker.invalid']),[],$body))->status());
+        $this->assertSame(403,$service->handle(new Request('POST','/admin',array_merge($headers,['cookie'=>'kandoo_admin_csrf=wrong']),[],$body))->status());
+        $this->assertSame([], $calls);
+        $this->assertSame(200,$service->handle(new Request('POST','/admin',$headers,[],$body))->status());
+        $this->assertSame(['+989120000001'],$calls);
+    }
 }

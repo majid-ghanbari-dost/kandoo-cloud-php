@@ -156,6 +156,12 @@ final class Config
                 }
                 $customerConfig[$name] = $customer[$name];
             }
+            foreach (['device_numbers_per_day' => 3, 'device_ttl_seconds' => 2592000,
+                'issue_ip_limit_per_minute' => 10, 'verify_ip_limit_per_minute' => 20] as $name => $default) {
+                $value = $customer[$name] ?? $default;
+                if (!is_int($value) || $value < 1) { throw new ConfigException("customer_auth.$name must be a positive integer."); }
+                $customerConfig[$name] = $value;
+            }
             if ($customerConfig['code_length'] < 6 || $customerConfig['code_length'] > 9
                 || $customerConfig['codes_per_announcement'] > 2) {
                 throw new ConfigException('Invalid customer OTP length or announcement cap.');
