@@ -154,8 +154,10 @@ final class Projection
             break; // earliest matching successful draft wins
         }
 
-        // ── proposed v1.1 passthrough (§11, U14): recorded as delivered, never computed ─
-        $v11 = self::v11Passthrough($invoice);
+        // ── explicit v1.1 passthrough: recorded as delivered, never computed ─
+        $v11 = $invoice->get('invoice_schema_version') === '1.1'
+            ? self::v11Passthrough($invoice)
+            : ['customer_name' => null, 'payments' => null, 'currency_unit' => null, 'remaining_balance' => null];
 
         // ── build and insert the projection row (first write wins; no token re-mint) ─
         $token = RandomToken::generate();
@@ -176,6 +178,27 @@ final class Projection
             'customer_phone' => $customerPhone,
         ], $v11);
         $gateway->insertProjectionIgnore($row);
+    }
+
+    /** Validate the version marker and, for explicit v1.1, its recorded fields. */
+    public static function validInvoiceExtension(JsonObject $entryDto): bool
+    {
+        $snapshot = $entryDto->get('response_snapshot');
+        $response = $snapshot instanceof JsonObject ? $snapshot->get('response') : null;
+        $invoice = $response instanceof JsonObject ? $response->get('invoice') : null;
+        if (!$invoice instanceof JsonObject || !$invoice->has('invoice_schema_version')) {
+            // Marker absence is legacy, regardless of field presence.
+            return true;
+        }
+        if ($invoice->get('invoice_schema_version') !== '1.1') {
+            return false;
+        }
+        try {
+            self::v11Passthrough($invoice);
+            return true;
+        } catch (ProjectionViolationException) {
+            return false;
+        }
     }
 
     private static function parseStoredEntry(string $entryJson): ?JsonObject
@@ -244,7 +267,8 @@ final class Projection
         if ($invoice->has('customer_name')) {
             $name = $invoice->get('customer_name');
             if ($name !== null) {
-                if (!is_string($name) || trim($name) === '' || strlen($name) > 255) {
+                $length = is_string($name) ? preg_match_all('/./us', $name) : false;
+                if (!is_string($name) || $length === false || $length < 1 || $length > 255) {
                     throw new ProjectionViolationException('PUBLIC_INVOICE_TEXT_INVALID');
                 }
                 $out['customer_name'] = $name;
@@ -258,7 +282,7 @@ final class Projection
                     throw new ProjectionViolationException('PUBLIC_INVOICE_PROJECTION_INVALID');
                 }
                 foreach ($payments as $payment) {
-                    if (!$payment instanceof JsonObject) {
+                    if (!$payment instanceof JsonObject || count($payment) !== 2 || !$payment->has('type') || !$payment->has('amount')) {
                         throw new ProjectionViolationException('PUBLIC_INVOICE_PROJECTION_INVALID');
                     }
                     $type = $payment->get('type');

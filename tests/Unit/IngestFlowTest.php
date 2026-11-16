@@ -53,6 +53,7 @@ final class IngestFlowTest extends TestCase
             'ingest_rate_limit_per_minute' => 120,
             'public_legal_copy_required' => false,
             'env' => 'testing',
+            'replication_auth_bypass' => true,
         ], $overrides));
         return new Kernel($config, $this->gateway, new FixedClock(self::NOW));
     }

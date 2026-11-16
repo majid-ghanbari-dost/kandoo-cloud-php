@@ -50,6 +50,11 @@ final class Request
                 $headers[$name] = (string) $value;
             }
         }
+        // Some PHP/FastCGI hosts expose parsed Basic credentials rather than the header.
+        if (!isset($headers['authorization']) && isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
+            && is_string($_SERVER['PHP_AUTH_USER']) && is_string($_SERVER['PHP_AUTH_PW'])) {
+            $headers['authorization'] = 'Basic ' . base64_encode($_SERVER['PHP_AUTH_USER'] . ':' . $_SERVER['PHP_AUTH_PW']);
+        }
         foreach (['CONTENT_TYPE' => 'content-type', 'CONTENT_LENGTH' => 'content-length'] as $server => $header) {
             if (isset($_SERVER[$server]) && is_scalar($_SERVER[$server])) {
                 $headers[$header] = (string) $_SERVER[$server];

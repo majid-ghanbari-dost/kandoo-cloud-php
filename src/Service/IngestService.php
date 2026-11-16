@@ -63,6 +63,20 @@ final class IngestService
             }
         }
 
+        // Device credentials are scoped to one store; failures share one envelope.
+        if (($this->config['replication_auth_bypass'] ?? false) !== true) {
+            $id = Uuid::tryNormalize($request->header('x-kandoo-device-id') ?? '');
+            $secret = $request->header('x-kandoo-device-secret');
+            $device = $id === null ? null : $this->gateway->findDevice($id);
+            $routeId = Uuid::tryNormalize($routeStoreId);
+            if ($device === null || !is_string($secret) || $secret === '' || $routeId === null
+                || $device['store_id'] !== $routeId
+                || !hash_equals($device['secret_sha256'], hash('sha256', $secret))) {
+                return $this->envelope(Envelopes::unauthenticated());
+            }
+            $this->gateway->touchDeviceAuthenticated($id, gmdate('Y-m-d H:i:s', $this->clock->nowUnix()));
+        }
+
         // §5.4 step 1 — route store_id must parse as UUID.
         $storeId = Uuid::tryNormalize($routeStoreId);
         if ($storeId === null) {
@@ -238,6 +252,11 @@ final class IngestService
                     $dto->get('previous_entry_hash'),
                     (string) $recomputedHashes[$index - 1],
                 ));
+            }
+
+            // Addendum C4: validate each explicitly versioned invoice before any mutation.
+            if (!Projection::validInvoiceExtension($dto)) {
+                return $this->fail(Envelopes::invoiceExtensionInvalid());
             }
 
             $recomputedHashes[$index] = $entryHash;

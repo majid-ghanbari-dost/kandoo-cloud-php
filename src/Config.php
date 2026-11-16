@@ -102,6 +102,17 @@ final class Config
         }
         $config['replication_key'] = $key;
 
+        // Password hash is generated outside the repository with password_hash().
+        $adminHash = $raw['admin_password_hash'] ?? null;
+        if ($adminHash !== null && (!is_string($adminHash)
+            || (password_get_info($adminHash)['algoName'] ?? 'unknown') === 'unknown')) {
+            throw new ConfigException('admin_password_hash must be null or a password_hash digest.');
+        }
+        if ($adminHash !== null && is_string($key) && password_verify($key, $adminHash)) {
+            throw new ConfigException('The administrative password must differ from the replication key.');
+        }
+        $config['admin_password_hash'] = $adminHash;
+
         foreach (['public_rate_limit_per_minute' => 60, 'ingest_rate_limit_per_minute' => 120] as $name => $default) {
             $value = $raw[$name] ?? $default;
             if (!is_int($value) || $value < 0) {
@@ -121,6 +132,83 @@ final class Config
             throw new ConfigException('env must be a non-empty string.');
         }
         $config['env'] = $env;
+        $bypass = $raw['replication_auth_bypass'] ?? false;
+        if (!is_bool($bypass) || ($bypass && !in_array($env, ['development', 'testing'], true))) {
+            throw new ConfigException('replication_auth_bypass is allowed only in development or testing.');
+        }
+        $config['replication_auth_bypass'] = $bypass;
+
+        // Customer authentication is opt-in until its storage and delivery are configured.
+        // All policy numbers must be supplied explicitly by the operator.
+        $customer = $raw['customer_auth'] ?? ['enabled' => false];
+        if (!is_array($customer) || !isset($customer['enabled']) || !is_bool($customer['enabled'])) {
+            throw new ConfigException('customer_auth.enabled must be boolean.');
+        }
+        $customerConfig = ['enabled' => $customer['enabled']];
+        if ($customer['enabled']) {
+            if (!str_starts_with($config['base_url'], 'https://')) {
+                throw new ConfigException('Customer authentication requires HTTPS.');
+            }
+            foreach (['code_length', 'code_ttl_seconds', 'max_attempts', 'codes_per_announcement',
+                'issue_window_seconds', 'max_issues_per_window', 'session_ttl_seconds'] as $name) {
+                if (!isset($customer[$name]) || !is_int($customer[$name]) || $customer[$name] < 1) {
+                    throw new ConfigException("customer_auth.$name must be a positive integer.");
+                }
+                $customerConfig[$name] = $customer[$name];
+            }
+            foreach (['device_numbers_per_day' => 3, 'device_ttl_seconds' => 2592000,
+                'issue_ip_limit_per_minute' => 10, 'verify_ip_limit_per_minute' => 20] as $name => $default) {
+                $value = $customer[$name] ?? $default;
+                if (!is_int($value) || $value < 1) { throw new ConfigException("customer_auth.$name must be a positive integer."); }
+                $customerConfig[$name] = $value;
+            }
+            if ($customerConfig['code_length'] < 6 || $customerConfig['code_length'] > 9
+                || $customerConfig['codes_per_announcement'] > 2) {
+                throw new ConfigException('Invalid customer OTP length or announcement cap.');
+            }
+            $pepper = $customer['otp_pepper'] ?? null;
+            if (!is_string($pepper) || strlen($pepper) < 32) {
+                throw new ConfigException('customer_auth.otp_pepper must be at least 32 bytes and configured outside the repository.');
+            }
+            $customerConfig['otp_pepper'] = $pepper;
+            $telegram = $customer['telegram_url'] ?? null;
+            if ($telegram !== null && (!is_string($telegram) || !str_starts_with($telegram, 'https://') || filter_var($telegram, FILTER_VALIDATE_URL) === false)) {
+                throw new ConfigException('customer_auth.telegram_url must be null or an HTTPS URL.');
+            }
+            $customerConfig['telegram_url'] = $telegram;
+        }
+        $config['customer_auth'] = $customerConfig;
+
+        $sms = $raw['faraz_sms'] ?? ['enabled' => false];
+        if (!is_array($sms) || !isset($sms['enabled']) || !is_bool($sms['enabled'])) {
+            throw new ConfigException('faraz_sms.enabled must be boolean.');
+        }
+        $config['faraz_sms'] = ['enabled' => $sms['enabled']];
+        if ($sms['enabled']) {
+            $dry = $sms['dry_run'] ?? true;
+            if (!is_bool($dry) || ($dry && !in_array($env, ['testing', 'development'], true))) {
+                throw new ConfigException('faraz_sms dry mode is only permitted in testing or development.');
+            }
+            $validatedSms = ['enabled' => true, 'dry_run' => $dry];
+            foreach (['api_key', 'line_number', 'announcement_pattern', 'otp_pattern'] as $name) {
+                $value = $sms[$name] ?? null;
+                if (!is_string($value) || $value === '' || strlen($value) > 256 || strpbrk($value, "\r\n") !== false) {
+                    throw new ConfigException("faraz_sms.$name must be a non-empty string without line breaks.");
+                }
+                $validatedSms[$name] = $value;
+            }
+            $config['faraz_sms'] = $validatedSms;
+        }
+
+        $retention = $raw['retention'] ?? [];
+        if (!is_array($retention)) { throw new ConfigException('retention must be an array.'); }
+        $config['retention'] = [];
+        foreach (['otp_challenge_seconds'=>86400, 'expired_session_seconds'=>2592000,
+            'idempotency_seconds'=>2592000, 'undeliverable_sms_seconds'=>7776000] as $name => $default) {
+            $value = $retention[$name] ?? $default;
+            if (!is_int($value) || $value < 1) { throw new ConfigException("retention.$name must be a positive integer."); }
+            $config['retention'][$name] = $value;
+        }
 
         return $config;
     }

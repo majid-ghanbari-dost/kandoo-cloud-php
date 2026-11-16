@@ -7,7 +7,7 @@ declare(strict_types=1);
  * own cron; D2). Schedule on the host (every minute, or every 5 minutes — pruning is
  * idempotent):
  *
- *   * * * * * php /path/to/app/bin/cron.php >> /dev/null 2>&1
+ *   * * * * * php /path/to/app/bin/cron.php >> /path/to/private/cron.log 2>&1
  *
  * Keeps rows for the current and previous 1-minute window only. Never touches contract
  * data (cloud_entries / public_invoices / cloud_stores).
@@ -19,6 +19,7 @@ use Kandoo\Cloud\Config;
 use Kandoo\Cloud\ConfigException;
 use Kandoo\Cloud\Database;
 use Kandoo\Cloud\Store\MariaDbGateway;
+use Kandoo\Cloud\Retention\Cleanup;
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -29,10 +30,13 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 try {
     $config = Config::load();
-    $gateway = new MariaDbGateway(new Database($config->all()));
+    $db = new Database($config->all());
+    $gateway = new MariaDbGateway($db);
     $now = time();
     $currentWindow = intdiv($now, 60) * 60;
     $gateway->pruneRateBuckets($currentWindow - 60); // keep current + previous window
+    $counts = (new Cleanup($db, $config->get('retention'), $config->get('customer_auth')['issue_window_seconds'] ?? 0))->run($now);
+    fwrite(STDOUT, gmdate('c', $now) . ' retention '.json_encode($counts, JSON_THROW_ON_ERROR) . PHP_EOL);
     exit(0);
 } catch (ConfigException $e) {
     fwrite(STDERR, 'CONFIG ERROR: ' . $e->getMessage() . PHP_EOL);

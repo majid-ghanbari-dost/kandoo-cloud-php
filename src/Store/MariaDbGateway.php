@@ -32,6 +32,56 @@ final class MariaDbGateway implements HarnessGateway
         return $this->db->pdo();
     }
 
+    public function insertDevice(string $deviceId, string $storeId, string $secretHash, string $registeredAt): void
+    {
+        $stmt = $this->pdo()->prepare('INSERT INTO cloud_replication_devices (device_id, store_id, secret_sha256, registered_at) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$deviceId, $storeId, $secretHash, $registeredAt]);
+    }
+
+    public function findDevice(string $deviceId): ?array
+    {
+        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE device_id = ?');
+        $stmt->execute([$deviceId]);
+        $row = $stmt->fetch();
+        if ($row === false) { return null; }
+        $row['verified'] = (bool) $row['verified'];
+        return $row;
+    }
+
+    public function touchDeviceAuthenticated(string $deviceId, string $at): void
+    {
+        $stmt = $this->pdo()->prepare('UPDATE cloud_replication_devices SET verified = 1, last_authenticated_at = ? WHERE device_id = ?');
+        $stmt->execute([$at, $deviceId]);
+    }
+
+    public function isAdminEnabled(): bool
+    {
+        $value = $this->pdo()->query('SELECT enabled FROM cloud_admin_state WHERE singleton_id = 1')->fetchColumn();
+        return $value !== false && (int) $value === 1;
+    }
+
+    public function setAdminEnabled(bool $enabled, string $at): void
+    {
+        // State and audit entry must commit or roll back together.
+        $pdo = $this->pdo();
+        if ($pdo->inTransaction()) { throw new \LogicException('Admin transition needs its own transaction.'); }
+        $pdo->beginTransaction();
+        try {
+            $current = $pdo->query('SELECT enabled FROM cloud_admin_state WHERE singleton_id = 1 FOR UPDATE')->fetchColumn();
+            if ($current === false) { throw new \RuntimeException('Admin state missing.'); }
+            if ((bool) $current !== $enabled) {
+                $stmt = $pdo->prepare('UPDATE cloud_admin_state SET enabled = ? WHERE singleton_id = 1');
+                $stmt->execute([$enabled ? 1 : 0]);
+                $stmt = $pdo->prepare('INSERT INTO cloud_admin_events (event_type, occurred_at) VALUES (?, ?)');
+                $stmt->execute([$enabled ? 'enabled' : 'disabled', $at]);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
     // ── transactions ───────────────────────────────────────────────────────────
 
     public function beginTransaction(): void
@@ -250,6 +300,8 @@ final class MariaDbGateway implements HarnessGateway
         return match ($scope) {
             'public' => 'public_rate_buckets',
             'ingest' => 'ingest_rate_buckets',
+            'customer_issue' => 'customer_issue_rate_buckets',
+            'customer_verify' => 'customer_verify_rate_buckets',
             default => throw new \InvalidArgumentException('Unknown rate-limit scope.'),
         };
     }
@@ -281,7 +333,7 @@ final class MariaDbGateway implements HarnessGateway
 
     public function pruneRateBuckets(int $olderThanWindowStart): void
     {
-        foreach (['public_rate_buckets', 'ingest_rate_buckets'] as $table) {
+        foreach (['public_rate_buckets', 'ingest_rate_buckets', 'customer_issue_rate_buckets', 'customer_verify_rate_buckets'] as $table) {
             $stmt = $this->pdo()->prepare("DELETE FROM $table WHERE window_start < ?");
             $stmt->execute([$olderThanWindowStart]);
         }

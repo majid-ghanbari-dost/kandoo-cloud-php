@@ -43,6 +43,7 @@ $config = [
     'ingest_rate_limit_per_minute' => $int('KANDOO_INGEST_RATE_LIMIT', 120),
     'public_legal_copy_required' => $bool('KANDOO_LEGAL_COPY_REQUIRED', false),
     'env' => 'testing',
+            'replication_auth_bypass' => true,
 ];
 
 $path = $root . '/config.php';

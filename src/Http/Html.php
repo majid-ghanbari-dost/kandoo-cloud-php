@@ -93,14 +93,14 @@ final class Html
             $paymentsSection = '<section class="payments"><h2>پرداخت‌ها</h2>'
                 . '<table><thead><tr><th>روش</th><th class="num">مبلغ</th></tr></thead>'
                 . '<tbody>' . $paymentRows . '</tbody></table>';
-            if ($remainingBalance !== null) {
-                $balanceClass = (int) $remainingBalance > 0 ? 'balance due' : 'balance settled';
-                $paymentsSection .= '<p class="' . $balanceClass . '">مانده باقی‌مانده (ثبت‌شده): <bdi>'
-                    . self::n0((int) $remainingBalance) . '</bdi> ' . $unitWord . '</p>';
-            }
             $paymentsSection .= '</section>';
         } else {
             $gapParagraphs .= '<p>روش پرداخت (<code dir="ltr">payment_method</code>) به‌صورت فیلد جداگانه در داده صدور این فاکتور موجود نیست.</p>';
+        }
+        if ($remainingBalance !== null) {
+            $balanceClass = (int) $remainingBalance > 0 ? 'balance due' : 'balance settled';
+            $paymentsSection .= '<section class="payments"><p class="' . $balanceClass . '">مانده باقی‌مانده (ثبت‌شده): <bdi>'
+                . self::n0((int) $remainingBalance) . '</bdi> ' . $unitWord . '</p></section>';
         }
 
         $gapSection = $gapParagraphs === '' ? '' :

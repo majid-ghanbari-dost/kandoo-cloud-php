@@ -40,6 +40,25 @@ return [
     //         (constant-time compare; mismatch → 401 UNAUTHENTICATED).
     // FAKE example value if you enable it: 'TEST-REPLICATION-KEY'.
     'replication_key' => null,
+    // Only development/testing may set this to true; never enable in production.
+    'replication_auth_bypass' => false,
+
+    // Optional independent password_hash() digest, configured outside the repository.
+    // null disables administration, including the activation command.
+    'admin_password_hash' => null,
+
+    // Customer auth remains disabled until P-08 configures a real delivery adapter.
+    // When enabled, provide all numerical policy values and an independent high-entropy
+    // otp_pepper exclusively in config.php outside the repository. Telegram is optional.
+    'customer_auth' => ['enabled' => false],
+
+    // Faraz is disabled by default; credentials and pattern identifiers belong in
+    // the external config only. Dry mode is permitted only in development/testing.
+    'faraz_sms' => ['enabled' => false],
+
+    // Retention after expiration / creation, in seconds (P-15).
+    'retention' => ['otp_challenge_seconds'=>86400, 'expired_session_seconds'=>2592000,
+        'idempotency_seconds'=>2592000, 'undeliverable_sms_seconds'=>7776000],
 
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.

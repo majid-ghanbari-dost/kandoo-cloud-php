@@ -36,7 +36,7 @@ final class MigratorSqlTest extends TestCase
         $dir = dirname(__DIR__, 2) . '/migrations';
         $files = array_values(array_filter(scandir($dir) ?: [], static fn (string $n): bool => (bool) preg_match('/^\d{4}_.+\.sql$/', $n)));
         sort($files);
-        $this->assertSame(['0001_core.sql', '0002_rate_limits.sql'], $files);
+        $this->assertSame(['0001_core.sql', '0002_rate_limits.sql', '0003_replication_devices.sql', '0004_admin.sql', '0005_customer_auth.sql', '0006_sms_requests.sql', '0007_customer_controls.sql', '0008_otp_replay_metadata.sql'], $files);
         foreach ($files as $file) {
             $sql = file_get_contents($dir . '/' . $file);
             $this->assertNotFalse($sql);

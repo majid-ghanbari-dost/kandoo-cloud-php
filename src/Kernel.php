@@ -38,6 +38,7 @@ final class Kernel
         private array $config,
         ?StoreGateway $gateway = null,
         ?Clock $clock = null,
+        private ?\Kandoo\Cloud\Customer\CustomerAuth $customerAuth = null,
     ) {
         $this->gateway = $gateway ?? new MariaDbGateway(new Database($config));
         $this->clock = $clock ?? new SystemClock();
@@ -47,6 +48,26 @@ final class Kernel
     {
         $path = $request->path();
         $method = $request->method();
+
+        if ($path === '/admin' || $path === '/admin/') {
+            $reset = null;
+            if (($this->config['customer_auth']['enabled'] ?? false) === true) {
+                $reset = function (string $phone): bool {
+                    $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth($this->config['customer_auth'], new Database($this->config), $this->clock);
+                    return $auth->resetBudget($phone);
+                };
+            }
+            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset);
+            return $service->handle($request);
+        }
+
+        if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/')) {
+            $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
+                $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock,
+                ($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null
+            );
+            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock))->handle($request);
+        }
 
         if ($path === '/health') {
             if ($method !== 'GET') {
