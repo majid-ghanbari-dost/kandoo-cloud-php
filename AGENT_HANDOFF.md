@@ -5,7 +5,7 @@ This document is maintained under standing order SO-01.
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
-- P-13 and P-14 are delivered and manager accepted. Customer auth stays default-off; device identifiers are replaceable cookies/tokens and per-IP limits use the direct peer only. P-15 remains blocked pending a PM ruling; P-16 and P-17 delivered and P-18 handoff below records the reordered closeout. Green CI is not manager acceptance for P-16 or P-17.
+- P-13 and P-14 are delivered and manager accepted. Customer auth stays default-off; device identifiers are replaceable cookies/tokens and per-IP limits use the direct peer only. The 15 Nov PM retention ruling resolves P-15 and implementation is in progress. P-16, P-17 and P-18 are manager accepted.
 - D-J: no production data exists; the pinned U7 profile applies from now and shared parity vectors are required. Full D-A through D-K are to be appended to `docs/DECISIONS.md` in P-17 without deleting history.
 
 ## O14 continuation — P-15 blocker
@@ -24,11 +24,15 @@ This document is maintained under standing order SO-01.
 | P-13 | manager accepted | `o14-P-13` | `7994de85591c504d12ec4a0b2f9e8074fd2c611b` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43395902795 |
 | P-14 | manager accepted | `o14-P-14` | `4606188dc4725a727c1182687180da25b6d53fe1` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43687728002 |
 | P-15 | blocked; PM ruling requested | none | none | none |
-| P-16 | delivered; manager acceptance pending | `o14-P-16` | `76bb3a6ec6de1eb64067806dab0ed5183a736574` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690115611 |
-| P-17 | delivered; manager acceptance pending | `o14-P-17` | `09b412dcd5ce2aad0c02ef048668aca3cbb14a80` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690341208 |
-| P-18 | this handoff commit; branch CI and tag CI must be verified after commit | `o14-P-18` after green branch CI | resolve tag to this commit | report actual run URLs externally after they exist |
+| P-16 | manager accepted | `o14-P-16` | `76bb3a6ec6de1eb64067806dab0ed5183a736574` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690115611 |
+| P-17 | manager accepted | `o14-P-17` | `09b412dcd5ce2aad0c02ef048668aca3cbb14a80` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690341208 |
+| P-18 | manager accepted | `o14-P-18` | `a8c926496b1856736824ab1d110c8c7317b9bd9c` | https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/43690474495 |
 
 P-16 file `docs/vectors/canonical-vectors-v1.json` has 57 vectors and is independent of P-15; complete contents were sent in chat for C# C-66. P-17 only adds decisions and corrects escape notation, preserving history. Resume P-15 when the PM ruling arrives; until then ORDER 14 is not fully complete. Do not start ORDER 15. PR #2 stays untouched. Do not claim manager acceptance for items not explicitly accepted. Preserve existing tags and frozen contract. This ledger intentionally avoids an impossible self-referential P-18 commit SHA or a future CI result; the tag and closeout report supply these once created.
+
+## P-15 ruling and implementation in progress
+
+PM ruling received in `PHP_P15_RULING.md` (3,931 bytes, SHA-256 `6b894c0e3d55537075d8f33e6aa8c31e2af2b9cdce89ff9e868c7471827b7331`). Replication fingerprints, confirmed announcements, all SMS request rows and audit records never pruned. OTP replay metadata separated and backfilled; OTP challenges 24h, expired sessions 30d, idempotency metadata 30d, undeliverable data 90d configurable. Failed OTP deliveries wait both challenge and undeliverable periods; pending sends are retained. No separate disposable undeliverable SMS rows exist. The launch privacy minimization review is explicitly deferred to owner/legal. Implementation and DB tests require green CI before tag `o14-P-15`; no completion claimed yet. Following delivery, wait for manager acceptance before final PHP closeout; no ORDER 15 work.
 
 ## Current task status
 

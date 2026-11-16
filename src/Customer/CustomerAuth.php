@@ -39,11 +39,11 @@ final class CustomerAuth
                 $q = $pdo->prepare('INSERT INTO cloud_customer_device_numbers (device_hash,day_start,phone_hash) VALUES (?,?,?)');
                 $q->execute([$deviceHash,$day,$phoneHash]);
             }
-            $q = $pdo->prepare('INSERT IGNORE INTO cloud_otp_idempotency_locks (idempotency_hash) VALUES (?)'); $q->execute([$keyHash]);
+            $q = $pdo->prepare('INSERT IGNORE INTO cloud_otp_idempotency_locks (idempotency_hash,created_at) VALUES (?,?)'); $q->execute([$keyHash,$now]);
             $q = $pdo->prepare('SELECT idempotency_hash FROM cloud_otp_idempotency_locks WHERE idempotency_hash = ? FOR UPDATE'); $q->execute([$keyHash]); $q->fetch();
             $q = $pdo->prepare('INSERT IGNORE INTO cloud_customer_phones (phone) VALUES (?)'); $q->execute([$phone]);
             $q = $pdo->prepare('SELECT phone FROM cloud_customer_phones WHERE phone = ? FOR UPDATE'); $q->execute([$phone]); $q->fetch();
-            $q = $pdo->prepare('SELECT phone, challenge_id, expires_at, delivery_state, device_hash FROM cloud_otp_challenges WHERE idempotency_hash = ? FOR UPDATE');
+            $q = $pdo->prepare('SELECT phone, challenge_id, expires_at, delivery_state, device_hash FROM cloud_otp_idempotency_locks WHERE idempotency_hash = ? AND challenge_id IS NOT NULL FOR UPDATE');
             $q->execute([$keyHash]); $prior = $q->fetch();
             if ($prior !== false) {
                 $pdo->commit();
@@ -68,6 +68,8 @@ final class CustomerAuth
             $q = $pdo->prepare('UPDATE cloud_sms_announcements SET code_issues=code_issues+1 WHERE announcement_id=?'); $q->execute([$announcement]);
             $q = $pdo->prepare('INSERT INTO cloud_otp_challenges (challenge_id, phone, announcement_id, idempotency_hash, code_mac, created_at, expires_at, delivery_state, device_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $q->execute([$id, $phone, $announcement, $keyHash, OtpSecrets::codeMac($this->config['otp_pepper'], $id, $code), $now, $expires, 'pending', $deviceHash]);
+            $q = $pdo->prepare('UPDATE cloud_otp_idempotency_locks SET created_at=?,phone=?,device_hash=?,challenge_id=?,expires_at=?,delivery_state=? WHERE idempotency_hash=?');
+            $q->execute([$now,$phone,$deviceHash,$id,$expires,'pending',$keyHash]);
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
@@ -75,8 +77,18 @@ final class CustomerAuth
         }
         try { $sent = $this->transport->sendCode($phone, $code); } catch (\Throwable $e) { $sent = false; }
         // A failed/ambiguous delivery consumes budget; retrying the same key cannot send twice.
-        $q = $pdo->prepare('UPDATE cloud_otp_challenges SET delivery_state = ? WHERE challenge_id = ?');
-        $q->execute([$sent ? 'sent' : 'failed', $id]);
+        $pdo->beginTransaction();
+        try {
+            // The key is locked in the same order as issue() before touching the challenge.
+            $q = $pdo->prepare('SELECT idempotency_hash FROM cloud_otp_idempotency_locks WHERE idempotency_hash=? FOR UPDATE');
+            $q->execute([$keyHash]); $q->fetch();
+            $state = $sent ? 'sent' : 'failed';
+            $q = $pdo->prepare('UPDATE cloud_otp_challenges SET delivery_state=? WHERE challenge_id=?');
+            $q->execute([$state, $id]);
+            $q = $pdo->prepare('UPDATE cloud_otp_idempotency_locks SET delivery_state=? WHERE idempotency_hash=? AND challenge_id=?');
+            $q->execute([$state, $keyHash, $id]);
+            $pdo->commit();
+        } catch (\Throwable $e) { if ($pdo->inTransaction()) { $pdo->rollBack(); } throw $e; }
         return $sent ? ['status' => 'OTP_SENT', 'challenge_id' => $id, 'expires_at' => $expires] : ['status' => 'INCOMPLETE'];
     }
 

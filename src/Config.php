@@ -200,6 +200,16 @@ final class Config
             $config['faraz_sms'] = $validatedSms;
         }
 
+        $retention = $raw['retention'] ?? [];
+        if (!is_array($retention)) { throw new ConfigException('retention must be an array.'); }
+        $config['retention'] = [];
+        foreach (['otp_challenge_seconds'=>86400, 'expired_session_seconds'=>2592000,
+            'idempotency_seconds'=>2592000, 'undeliverable_sms_seconds'=>7776000] as $name => $default) {
+            $value = $retention[$name] ?? $default;
+            if (!is_int($value) || $value < 1) { throw new ConfigException("retention.$name must be a positive integer."); }
+            $config['retention'][$name] = $value;
+        }
+
         return $config;
     }
 
