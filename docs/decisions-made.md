@@ -7,3 +7,4 @@
 - P-22: A database-backed demo outbox plus protected local JSON-lines log implements both demo notification and OTP without network calls; rejected changing the Faraz adapter or treating provider acceptance as actual delivery.
 - P-23: Preserve mandatory device authentication and mark actual Hub integration blocked when the accessible Hub transport omits credentials; rejected a bypass or representing synthetic golden replay as real Hub proof (Q-P23-HUB-DEVICE-AUTH).
 - P-24: Measure 50 simultaneous synthetic unknown-invoice HTTP reads against real local MariaDB using the single PHP built-in worker, because that matches the Windows demo and avoids writes; rejected claiming production capacity or using in-process /health as a DB load test.
+- P-20b: Run the full CI suite and installer self-test on both PHP 8.1 and 8.5 with real MariaDB, preserving the existing 8.1 baseline; rejected treating a single PHP version or Linux CI as proof of a Windows execution.
