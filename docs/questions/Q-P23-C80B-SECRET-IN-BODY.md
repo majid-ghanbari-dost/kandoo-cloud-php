@@ -11,3 +11,7 @@ Hub C-80b `o15-C-80b` commit `b2d8a0d267fd618bf16a1fc173c46544338d3558` contains
 3. Stop and defer P-23/P-25 until a compatible secure transport is supplied. Do not disable auth, silently strip/change actual Hub traffic, or use owner/customer data.
 
 Current default is option 1 plus pause. No schema change or Cloud bypass is implicated. Q-P23-AUTH-WIRE-MISMATCH is closed for wire-format agreement only; this is a separate security defect. Cross-stack CI/replay and Windows execution remain unverified.
+
+## Executive acknowledgment
+
+The executive accepted the security stop and assigned the fix and the OpenAPI deprecation line to C# task C-83. Await the executive announcement of green C-83 before closing this question with the fix commit and resuming P-23. No bypass or security shortcut is authorized.
