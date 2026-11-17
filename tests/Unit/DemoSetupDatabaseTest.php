@@ -40,7 +40,10 @@ final class DemoSetupDatabaseTest extends DbTestCase
                 if (preg_match('/^kandoo_demo_[0-9a-f]{12}$/D',$name) && preg_match('/^kd_[0-9a-f]{12}$/D',$user)) {
                     $root=new \PDO('mysql:host=127.0.0.1;port=3306;charset=utf8mb4','root',$password,[\PDO::ATTR_ERRMODE=>\PDO::ERRMODE_EXCEPTION]);
                     $root->exec("DROP DATABASE `$name`");
-                    foreach (['localhost','127.0.0.1'] as $host) { $root->exec('DROP USER '.$root->quote($user).'@'.$root->quote($host)); }
+                    $peer=(string)$root->query("SELECT SUBSTRING_INDEX(USER(),'@',-1)")->fetchColumn();
+                    $hosts=['localhost','127.0.0.1'];
+                    if (\Kandoo\Cloud\Demo\Lan::privateIp($peer)) { $hosts[]=$peer; }
+                    foreach (array_unique($hosts) as $host) { $root->exec('DROP USER '.$root->quote($user).'@'.$root->quote($host)); }
                 }
             }
             foreach (glob($directory.'/*') ?: [] as $file) { unlink($file); }

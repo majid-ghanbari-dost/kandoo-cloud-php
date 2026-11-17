@@ -30,7 +30,12 @@ try {
         $stage='create database';
         $root->exec("CREATE DATABASE `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
         $stage='create local accounts';
-        foreach (['localhost', '127.0.0.1'] as $host) {
+        // On a containerized MariaDB the forwarded loopback connection is seen as a
+        // bridge address; grant only that exact private peer, never a wildcard.
+        $peer=(string)$root->query("SELECT SUBSTRING_INDEX(USER(),'@',-1)")->fetchColumn();
+        $hosts=['localhost', '127.0.0.1'];
+        if (Lan::privateIp($peer)) { $hosts[]=$peer; }
+        foreach (array_unique($hosts) as $host) {
             $account=$root->quote($dbUser).'@'.$root->quote($host);
             $root->exec('CREATE USER '.$account.' IDENTIFIED BY '.$root->quote($dbSecret));
             $root->exec("GRANT ALL PRIVILEGES ON `$dbName`.* TO ".$account);
