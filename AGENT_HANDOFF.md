@@ -12,6 +12,8 @@ P-22 `o15-P-22` -> `d0552e5656009724ea61611309f77abf6d22ee5d`; branch CI https:/
 
 P-23 SECURITY BLOCKER: accessible Hub `majid-ghanbari-dost/Kandoo` main `75a8aa7a148209ab0b037f527c8fb23fb1ee292d`, `src/Kandoo.Hub/HubCloudReplicationClient.cs` blob `465f56786e5cb75d5108a6c51e22b353f46f34ab`, sends Idempotency-Key but no mandatory device-id/device-secret headers; no actual Hub E2E proof possible using that version without weakening D-B. `docs/questions/Q-P23-HUB-DEVICE-AUTH.md` records options; safe path is keep auth and continue independent P-24. P-23 has no tag and is not complete. A different working Hub revision may exist but is not established.
 
+P-24 in progress: a synthetic, read-only HTTP benchmark creates 50 simultaneous loopback requests to an isolated MariaDB-backed missing-invoice lookup on the same single-worker PHP built-in server used by the demo; p95 and error rate are measured, not production-capacity claims. CI runs the benchmark; branch/tag result still pending.
+
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.

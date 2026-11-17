@@ -96,6 +96,9 @@ jobs:
       - name: Local in-process health load smoke test
         run: php tools/dev/load-health.php
 
+      - name: Concurrent local MariaDB read test (synthetic, not production capacity)
+        run: python3 tools/dev/load-mariadb.py --concurrency 50 --requests 100 --github-notice
+
       - name: Sample self-test (isolated database, no live SMS)
         run: php bin/selftest.php --sample
 
