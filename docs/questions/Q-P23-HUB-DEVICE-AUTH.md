@@ -8,3 +8,7 @@ Options:
 3. Continue independent P-24 work now and defer real-Hub proof; never disable device authentication as a workaround.
 
 Safe default: option 3 while pursuing option 1. Do not expose real data or secrets and do not weaken auth. P-23 must not be reported complete, tagged, or accepted until actual Hub proof exists.
+
+## Executive response — original missing-credential issue closed
+
+C-80b `o15-C-80b` -> `b2d8a0d267fd618bf16a1fc173c46544338d3558`, branch CI https://github.com/majid-ghanbari-dost/Kandoo/actions/runs/44039697223 green for Ubuntu and Windows, adds `Authorization: Bearer <device-secret>` and v1.1 support. The Hub no longer omits a credential; no authentication bypass is authorized. This closes the original missing-credential finding only, not P-23: a distinct Cloud/Hub wire mismatch is recorded in Q-P23-AUTH-WIRE-MISMATCH.md and actual interoperability remains unverified.
