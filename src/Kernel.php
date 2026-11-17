@@ -48,6 +48,15 @@ final class Kernel
     {
         $path = $request->path();
         $method = $request->method();
+        if (($this->config['env'] ?? '') === 'demo') {
+            $peer = $request->clientIp();
+            if (!\Kandoo\Cloud\Demo\Lan::localPeer($peer)) { return Response::emptyBody(403); }
+            // The admin password must not cross even the trusted LAN in cleartext.
+            $host = (string) parse_url((string) $this->config['base_url'], PHP_URL_HOST);
+            if (($path === '/admin' || $path === '/admin/') && !in_array($peer, ['127.0.0.1', '::1', $host], true)) {
+                return Response::emptyBody(403);
+            }
+        }
 
         if ($path === '/admin' || $path === '/admin/') {
             $reset = null;

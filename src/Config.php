@@ -132,6 +132,18 @@ final class Config
             throw new ConfigException('env must be a non-empty string.');
         }
         $config['env'] = $env;
+        if ($env === 'demo') {
+            $url = parse_url($config['base_url']);
+            if (!is_array($url) || ($url['scheme'] ?? '') !== 'http'
+                || !\Kandoo\Cloud\Demo\Lan::privateIp((string) ($url['host'] ?? ''))
+                || isset($url['user']) || isset($url['pass']) || isset($url['query']) || isset($url['fragment'])
+                || (($url['path'] ?? '') !== '')) {
+                throw new ConfigException('Demo base_url must be a private IPv4 HTTP origin.');
+            }
+            if (($raw['faraz_sms']['enabled'] ?? false) !== false) {
+                throw new ConfigException('Real SMS is forbidden in demo mode.');
+            }
+        }
         $bypass = $raw['replication_auth_bypass'] ?? false;
         if (!is_bool($bypass) || ($bypass && !in_array($env, ['development', 'testing'], true))) {
             throw new ConfigException('replication_auth_bypass is allowed only in development or testing.');

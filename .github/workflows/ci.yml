@@ -10,10 +10,12 @@ on:
       - arena/928d944b-kandoo-cloud-php
       - main
       - arena/ae9da477-kandoo-cloud-php
+      - arena/f729618f-kandoo-cloud-php
     tags:
       - 'stable-*'
       - 'w11-*'
       - 'o14-P-*'
+      - 'o15-P-*'
   pull_request:
     branches:
       - main
@@ -50,6 +52,7 @@ jobs:
         env:
           # FAKE CI-only credentials, generated per run — never real, never committed.
           MYSQL_ROOT_PASSWORD: TEST-root-pass
+          MYSQL_ROOT_HOST: "%"
           MYSQL_DATABASE: TEST_kandoo_cloud
           MYSQL_USER: TEST_kandoo_user
           MYSQL_PASSWORD: TEST-DB-PASSWORD
@@ -99,6 +102,7 @@ jobs:
       - name: PHPUnit (unit + contract suites; golden replay on memory AND MariaDB gateways)
         env:
           KANDOO_DB_TESTS: '1'
+          KANDOO_DEMO_TEST_ROOT_PASSWORD: TEST-root-pass
         run: |
           set +e
           php phpunit.phar --configuration phpunit.xml.dist --debug --log-junit phpunit-results.xml 2>&1 | tee phpunit-output.txt

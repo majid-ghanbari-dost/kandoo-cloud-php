@@ -13,3 +13,6 @@ phpunit.phar
 Thumbs.db
 .idea/
 .vscode/
+
+# Local demo credentials and database connection; never commit.
+.kandoo-demo/
