@@ -2,6 +2,8 @@
 
 This document is maintained under standing order SO-01.
 
+Acceptance evidence collection notice: owner requested six independent reports, no code changes or new tags. Reports `docs/acceptance-o15/P-20.md`, `P-20b.md`, `P-22.md`, `P-23.md`, `P-24.md`, `P-25.md` document tag object/commit SHA, diffs, criteria, CI, known failures, retries and limits. Green-run raw PHPUnit counts/annotations NOT-VERIFIED: artifact/log download returned EOF; zero PHPUnit skips inferred from the workflow JUnit fail-on-skips and successful step. P-20 historical failing CI annotation explicitly reported 134 tests/850 assertions/one failure; this is not a green-run count. No new task and no new tag; wait for specific acceptance feedback, P-26 closed unless expressly reopened.
+
 Executive closeout notice: ORDER 15 PHP task work is complete after P-23 and P-25 deliveries, with their stated limitations. Manager acceptance remains pending for P-20, P-20b, P-22, P-23, P-24 and P-25; P-21 conditional delivery and P-27 were accepted. No new tasks: respond only to a specific issue raised in manager acceptance for the relevant tag. P-26 remains closed unless the manager explicitly reopens it. Historical blockers below are resolved as noted; do not infer owner-demo acceptance from green CI.
 
 ## ORDER 15 PHP work complete — acceptance pending
