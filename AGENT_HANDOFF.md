@@ -10,6 +10,8 @@ P-21 tagged `o15-P-21` -> `32bcda3fe01d3ae65b9f7b0709bc84674b8f37e3`; branch CI 
 
 P-22 `o15-P-22` -> `d0552e5656009724ea61611309f77abf6d22ee5d`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44027031282 and tag CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44027138658 green, with MariaDB and zero skipped tests; manager acceptance pending. It uses demo-only MariaDB outbox plus protected local log; admin is owner-machine-only, real Faraz remains unchanged and disabled. Demo notification requires explicit CLI send then operator confirm, which is simulated and not real delivery. P-20-era installations with customer auth disabled need an upgrade path; end-to-end Windows/Hub acceptance remains unverified.
 
+P-23 SECURITY BLOCKER: accessible Hub `majid-ghanbari-dost/Kandoo` main `75a8aa7a148209ab0b037f527c8fb23fb1ee292d`, `src/Kandoo.Hub/HubCloudReplicationClient.cs` blob `465f56786e5cb75d5108a6c51e22b353f46f34ab`, sends Idempotency-Key but no mandatory device-id/device-secret headers; no actual Hub E2E proof possible using that version without weakening D-B. `docs/questions/Q-P23-HUB-DEVICE-AUTH.md` records options; safe path is keep auth and continue independent P-24. P-23 has no tag and is not complete. A different working Hub revision may exist but is not established.
+
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
