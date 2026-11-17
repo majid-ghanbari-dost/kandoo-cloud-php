@@ -15,6 +15,7 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 $dir=getenv('KANDOO_DEMO_DIR') ?: dirname(__DIR__).'/.kandoo-demo';
 $configPath=$dir.'/config.php'; $credentialPath=$dir.'/hub-credentials.json';
 $command=$argv[1] ?? '';
+$stage='validation';
 try {
     if ($command === 'setup') {
         $ip=$argv[2] ?? ''; $port=$argv[3] ?? '';
@@ -22,10 +23,13 @@ try {
         if (!is_dir($dir) || file_exists($configPath) || file_exists($credentialPath)) { throw new RuntimeException('Demo configuration exists or private directory absent; nothing overwritten'); }
         $dbPassword=getenv('KANDOO_DEMO_DB_ROOT_PASSWORD'); $admin=getenv('KANDOO_DEMO_ADMIN_PASSWORD');
         if (!is_string($dbPassword) || !is_string($admin) || strlen($admin)<12 || strlen($admin)>128) { throw new RuntimeException('Admin password must be 12–128 bytes'); }
+        $stage='root connection';
         $root=new PDO('mysql:host=127.0.0.1;port=3306;charset=utf8mb4','root',$dbPassword,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_EMULATE_PREPARES=>false]);
         $suffix=bin2hex(random_bytes(6)); $dbName='kandoo_demo_'.$suffix; $dbUser='kd_'.$suffix; $dbSecret=bin2hex(random_bytes(24));
         // Never select or modify an existing DB. No automatic destructive rollback on failure.
+        $stage='create database';
         $root->exec("CREATE DATABASE `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin");
+        $stage='create local accounts';
         foreach (['localhost', '127.0.0.1'] as $host) {
             $account=$root->quote($dbUser).'@'.$root->quote($host);
             $root->exec('CREATE USER '.$account.' IDENTIFIED BY '.$root->quote($dbSecret));
@@ -33,12 +37,15 @@ try {
         }
         $adminHash=password_hash($admin,PASSWORD_DEFAULT); if (!is_string($adminHash)) { throw new RuntimeException('Password hashing failed'); }
         $raw=['base_url'=>"http://$ip:$port",'env'=>'demo','db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>$dbName,'user'=>$dbUser,'pass'=>$dbSecret,'charset'=>'utf8mb4'], 'admin_password_hash'=>$adminHash,'customer_auth'=>['enabled'=>false], 'faraz_sms'=>['enabled'=>false]];
+        $stage='migrate';
         $config=Config::validate($raw); $db=new Database($config); (new Migrator($db))->migrate();
+        $stage='provision';
         $gateway=new MariaDbGateway($db); $store=RandomToken::uuidV4(); $device=RandomToken::uuidV4(); $secret=bin2hex(random_bytes(32));
         $gateway->seedStore(['store_id'=>$store,'active_writer_device_id'=>$device,'active_writer_epoch'=>1,'accepted_through_seq'=>0,'entry_count'=>0,'head_entry_hash'=>null,'projection_version'=>0]);
         $gateway->insertDevice($device,$store,hash('sha256',$secret),gmdate('Y-m-d H:i:s'));
         if (!(new AdminManager($config,$gateway))->transition(true,$admin,gmdate('Y-m-d H:i:s'))) { throw new RuntimeException('Admin activation failed'); }
         // The launcher pre-creates a Windows ACL-protected directory. Secrets stay outside public/.
+        $stage='write protected files';
         if (file_put_contents($credentialPath,json_encode(['store_id'=>$store,'device_id'=>$device,'device_secret'=>$secret,'writer_epoch'=>1],JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false) { throw new RuntimeException('Cannot write credentials'); }
         if (file_put_contents($configPath,"<?php\nreturn ".var_export($raw,true).";\n",LOCK_EX)===false) { throw new RuntimeException('Cannot write config'); }
         echo "Demo provisioned; credentials stored in protected local directory.\n";
@@ -59,6 +66,7 @@ try {
     } else { throw new RuntimeException('Usage: setup <private-ip> <port> | check | address'); }
 } catch (Throwable $e) {
     // Never print credentials or database errors; failure may leave an unused DB, never auto-drop.
-    fwrite(STDERR,"Demo setup/check failed. Check XAMPP, private address, permissions and prerequisites. No existing DB was removed.\n");
+    $code = $e instanceof PDOException ? (string)($e->errorInfo[1] ?? 'unknown') : 'n/a';
+    fwrite(STDERR,"Demo setup/check failed at $stage (DB error $code). Check XAMPP and prerequisites. No existing DB was removed.\n");
     exit(1);
 }
