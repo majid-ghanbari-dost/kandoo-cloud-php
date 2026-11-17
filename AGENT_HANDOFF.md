@@ -6,6 +6,8 @@ This document is maintained under standing order SO-01.
 
 New session branch `arena/f729618f-kandoo-cloud-php` started at `af3a758e52eb9b3c2521ee317d4395b58021f75f`, exactly equal to origin/main at start. ORDER 15 supersedes earlier "do not start until issued" notes. P-20 Windows kit candidate delivered at tag `o15-P-20` -> `91f305f8989a252624c3a663e9ed3cff722bd93d`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44026313434 and tag CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44026403257 green with MariaDB and no PHPUnit skips. CI tests PHP provisioning on Linux, not Windows PowerShell or owner machine; Windows end-to-end remains unverified and manager acceptance pending. P-21–P-25 remain pending in the specified order, then optional P-26. Demo is restricted to trusted RFC1918 LAN, real SMS disabled; HTTP is unencrypted, so no public/guest networks or real data. P-20 admin restricted to the owner machine. Follow branch/tag CI and handoff/report cycle; no task acceptance claimed before manager review.
 
+P-21 in progress: reference design URL requires sign-in in this environment; `docs/questions/Q-P21-DESIGN-BOARD.md` records the missing reference and safe approximation. Customer page uses explicit v2 tokens and existing recorded-only receipt; exact tile fidelity unverified. Demo HTTP cookies are allowed only under the validated private-LAN demo profile; production retains Secure cookies. P-22 outbox not yet implemented, so demo OTP cannot yet be delivered. CI and tag must be verified before claiming delivery.
+
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.

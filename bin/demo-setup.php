@@ -41,7 +41,11 @@ try {
             $root->exec("GRANT ALL PRIVILEGES ON `$dbName`.* TO ".$account);
         }
         $adminHash=password_hash($admin,PASSWORD_DEFAULT); if (!is_string($adminHash)) { throw new RuntimeException('Password hashing failed'); }
-        $raw=['base_url'=>"http://$ip:$port",'env'=>'demo','db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>$dbName,'user'=>$dbUser,'pass'=>$dbSecret,'charset'=>'utf8mb4'], 'admin_password_hash'=>$adminHash,'customer_auth'=>['enabled'=>false], 'faraz_sms'=>['enabled'=>false]];
+        $raw=['base_url'=>"http://$ip:$port",'env'=>'demo','db'=>['host'=>'127.0.0.1','port'=>3306,'name'=>$dbName,'user'=>$dbUser,'pass'=>$dbSecret,'charset'=>'utf8mb4'], 'admin_password_hash'=>$adminHash,'customer_auth'=>['enabled'=>true, 'code_length'=>6, 'code_ttl_seconds'=>300,
+            'max_attempts'=>3, 'codes_per_announcement'=>2, 'issue_window_seconds'=>900, 'max_issues_per_window'=>3,
+            'session_ttl_seconds'=>2592000, 'device_ttl_seconds'=>2592000, 'device_numbers_per_day'=>3,
+            'issue_ip_limit_per_minute'=>10, 'verify_ip_limit_per_minute'=>20, 'otp_pepper'=>bin2hex(random_bytes(32)),
+            'telegram_url'=>null], 'faraz_sms'=>['enabled'=>false]];
         $stage='migrate';
         $config=Config::validate($raw); $db=new Database($config); (new Migrator($db))->migrate();
         $stage='provision';

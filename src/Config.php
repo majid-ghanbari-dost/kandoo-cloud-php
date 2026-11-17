@@ -158,7 +158,7 @@ final class Config
         }
         $customerConfig = ['enabled' => $customer['enabled']];
         if ($customer['enabled']) {
-            if (!str_starts_with($config['base_url'], 'https://')) {
+            if ($env !== 'demo' && !str_starts_with($config['base_url'], 'https://')) {
                 throw new ConfigException('Customer authentication requires HTTPS.');
             }
             foreach (['code_length', 'code_ttl_seconds', 'max_attempts', 'codes_per_announcement',

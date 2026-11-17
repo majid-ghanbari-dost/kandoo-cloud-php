@@ -20,6 +20,14 @@ final class CustomerAuthConfigTest extends TestCase
                 'session_ttl_seconds' => 2592000, 'device_numbers_per_day'=>3, 'device_ttl_seconds'=>2592000, 'issue_ip_limit_per_minute'=>10, 'verify_ip_limit_per_minute'=>20, 'otp_pepper' => 'TEST-only-synthetic-otp-pepper-0123456789', 'telegram_url' => null]];
     }
 
+    public function testHttpCustomerAuthIsRestrictedToPrivateDemo(): void
+    {
+        $raw=$this->raw(); $raw['env']='demo'; $raw['base_url']='http://192.168.1.7:8080';
+        $this->assertTrue(Config::validate($raw)['customer_auth']['enabled']);
+        $raw['env']='production';
+        $this->expectException(ConfigException::class); Config::validate($raw);
+    }
+
     public function testConfigurationIsExplicitAndDisabledByDefault(): void
     {
         $raw = $this->raw();

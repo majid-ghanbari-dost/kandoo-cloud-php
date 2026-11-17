@@ -40,6 +40,12 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $kernel = new Kernel($config, $gateway, $clock, $auth);
         $page = $kernel->handle(new Request('GET','/account/login'));
         $this->assertSame(200, $page->status());
+        $this->assertStringContainsString('Secure;', $page->header('Set-Cookie'));
+        $demoConfig=$config; $demoConfig['env']='demo'; $demoConfig['base_url']='http://192.168.1.5:8080';
+        $demoKernel=new Kernel($demoConfig,$gateway,$clock,$auth);
+        $demoLogin=$demoKernel->handle(new Request('GET','/account/login',[],[],'',null,'192.168.1.7'));
+        $this->assertSame(200,$demoLogin->status()); $this->assertStringNotContainsString('Secure;', $demoLogin->header('Set-Cookie'));
+        $this->assertStringContainsString('SameSite=Strict', $demoLogin->header('Set-Cookie'));
         preg_match('/name="csrf" value="([^"]+)"/', $page->body(), $csrf);
         preg_match('/name="key" value="([^"]+)"/', $page->body(), $key);
         $this->assertNotEmpty($csrf[1]); $this->assertNotEmpty($key[1]);
@@ -58,6 +64,7 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $this->assertSame(303, $kernel->handle(new Request('GET','/account/login',$cookie2))->status());
         $detail = $kernel->handle(new Request('GET','/account/invoices/'.self::STORE.'/'.self::INVOICE,$cookie2));
         $this->assertSame(200, $detail->status()); $this->assertStringContainsString('TEST Store', $detail->body());
+        $this->assertStringContainsString('--radius: 16px', $detail->body()); $this->assertStringNotContainsString('profit', strtolower($detail->body()));
         $this->assertSame(404, $kernel->handle(new Request('GET','/account/invoices/'.self::STORE.'/cccccccc-cccc-4ccc-8ccc-cccccccccccc',$cookie2))->status());
         $this->assertSame('INVALID', $auth->verify($id[1], $sms->codes[0], $csrf[1])['status']);
         $second = $auth->issue(self::PHONE, 'TEST-second', $csrf[1]);
@@ -65,6 +72,9 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $bad = $sms->codes[1] === '000000' ? '111111' : '000000';
         for ($i = 0; $i < 3; $i++) { $this->assertSame('INVALID', $auth->verify($second['challenge_id'], $bad, $csrf[1])['status']); }
         $this->assertSame('INVALID', $auth->verify($second['challenge_id'], $sms->codes[1], $csrf[1])['status']);
+        $locked=$kernel->handle(new Request('POST','/account/verify',['cookie'=>$cookie],[],http_build_query(['csrf'=>$csrf[1], 'challenge'=>$second['challenge_id'], 'code'=>$sms->codes[1]])));
+        $this->assertSame(429,$locked->status()); $this->assertStringContainsString('پشتیبانی تلگرام',$locked->body());
+        $this->assertFalse($auth->challengeLocked($second['challenge_id'],str_repeat('Z',43)));
         $this->assertSame('CONFLICT', $auth->issue('+989120000002', 'TEST-second', $csrf[1])['status']);
         $this->assertSame('TELEGRAM', $auth->issue(self::PHONE, 'TEST-third', $csrf[1])['status']);
         $this->assertSame('TELEGRAM', $auth->issue('+989120000002', 'TEST-other', $csrf[1])['status']);
