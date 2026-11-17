@@ -15,3 +15,7 @@ Current default is option 1 plus pause. No schema change or Cloud bypass is impl
 ## Executive acknowledgment
 
 The executive accepted the security stop and assigned the fix and the OpenAPI deprecation line to C# task C-83. Await the executive announcement of green C-83 before closing this question with the fix commit and resuming P-23. No bypass or security shortcut is authorized.
+
+## Closed — C-83
+
+Executive announced `o15-C-83` -> `6903377f1a2e5832e63153df4306b2ee548b6f9c`; tag and green Ubuntu/Windows CI https://github.com/majid-ghanbari-dost/Kandoo/actions/runs/44066606436 were independently inspected. `ReplicationBatch.DeviceSecret` is now `[JsonIgnore]`, while transport continues to send Bearer. Legacy header deprecation is recorded in Hub `docs/openapi.yaml`. This closes the reported body-serialization issue; real P-23 Hub/PHP replay remains to be executed separately.
