@@ -79,6 +79,9 @@ jobs:
           extensions: pdo_mysql, mbstring
           coverage: none
 
+      - name: Record exact PHP version
+        run: php -r 'echo "::notice title=PHP runtime::PHP ", PHP_VERSION, PHP_EOL;'
+
       - name: Fetch PHPUnit 9 (CI may fetch PHPUnit; the deployed tree has no vendor deps)
         run: |
           wget -O phpunit.phar https://phar.phpunit.de/phpunit-9.phar
