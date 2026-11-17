@@ -66,14 +66,22 @@ final class Kernel
                     return $auth->resetBudget($phone);
                 };
             }
-            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset);
+            $outbox = null;
+            if (($this->config['env'] ?? '') === 'demo') {
+                $outbox = function (): array {
+                    return (new Database($this->config))->pdo()->query('SELECT phone,kind,body,created_at FROM cloud_demo_sms_outbox ORDER BY created_at DESC,message_id DESC LIMIT 100')->fetchAll();
+                };
+            }
+            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset, $outbox);
             return $service->handle($request);
         }
 
         if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/')) {
             $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
                 $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock,
-                ($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null
+                ($this->config['env'] ?? '') === 'demo'
+                    ? new \Kandoo\Cloud\Demo\DemoSms($this->config, new Database($this->config), $this->clock, getenv('KANDOO_DEMO_DIR') ?: kandoo_app_root().'/.kandoo-demo')
+                    : (($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null)
             );
             return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock, ($this->config['env'] ?? '') === 'demo'))->handle($request);
         }
