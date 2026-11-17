@@ -11,7 +11,7 @@
 | P-27 | `o15-P-27` | `ac5bcc334d75563180abaad3356bd3d994bf3bb5` | [شاخه](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44052773745) / [تگ](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44052902608) | DeviceBearer و legacy سبز؛ پذیرفته شد |
 | P-23 | `o15-P-23` | `124573f05514a2914a46976cbde672105f693ae4` | [شاخه](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44071968921) / [تگ](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44072197418) | transport واقعی Hub C-83، کلید معتبر ۲۰۰ و گم‌شده/نادرست ۴۰۱؛ پذیرش در انتظار |
 | P-24 | `o15-P-24` | `bc66889a40bcd7e05749dc627d1852eaabec6f82` | [شاخه](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44027484955) / [تگ](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44027564145) | ۱۰۰ درخواست، ۵۰ هم‌زمان، خطا ۰٪، p95 تگ ۵۶٫۲۱ms؛ پذیرش در انتظار |
-| P-25 | `o15-P-25` | در گزارش تکمیلی و `AGENT_HANDOFF.md` ثبت می‌شود | CI شاخه و تگ پس از ایجاد تگ ثبت می‌شود | هندآف؛ پذیرش در انتظار |
+| P-25 | `o15-P-25` | `2724969fd85475c777016d54d61abe3789a6773a` | [شاخه](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44072538232) / [تگ](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44072854193) | هندآف سبز؛ پذیرش در انتظار |
 
 ## راه‌اندازی و حدود اثبات
 

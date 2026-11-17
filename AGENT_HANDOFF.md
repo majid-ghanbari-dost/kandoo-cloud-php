@@ -26,6 +26,8 @@ P-24 `o15-P-24` -> `bc66889a40bcd7e05749dc627d1852eaabec6f82`: branch CI https:/
 
 P-20b delivered `o15-P-20b` -> `6776349c9ea95baaa99b939df037a76e0a96957d`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44037665035 and tag CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44037765746 green with PHP 8.5.12 and PHP 8.1.34, MariaDB 10.6, complete PHPUnit (no skips), demo installer check/self-test and sample self-test. These are Linux CI tests; Windows PowerShell/XAMPP owner-machine execution remains unverified. Manager acceptance pending. Owner XAMPP PHP 8.5.12; SQL Server SQLEXPRESS has HolooCopy and TNC has Holoo1. Do not connect to or modify owner databases. C-80b has been announced and inspected, and P-27 resolved the wire mismatch; do not bypass authentication. P-25 only after P-23.
 
+P-25 delivered `o15-P-25` -> `2724969fd85475c777016d54d61abe3789a6773a`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44072538232 and tag CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44072854193 green with real MariaDB and zero PHPUnit skips, including Hub C-83 real transport replay on PHP 8.1. Persian final report `docs/ORDER15-HANDOFF-FA.md` includes full ledger and limitations. Acceptance of P-25 and P-23 pending; P-21 conditionally accepted, P-27 accepted. P-26 not done. Stop after P-25 per executive order; owner-machine demo, actual Hub-generated v1.1, and full OTP-to-invoice remain unverified.
+
 ## ORDER 14 status
 
 - Starting tip `24d2d57429bf7186111f664a921083b84364ca06`; O14-PHP rev.2 authorizes work on this same branch; PR #2 remains open and untouched.
