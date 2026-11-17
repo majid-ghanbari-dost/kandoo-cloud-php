@@ -50,6 +50,18 @@ final class MemoryGateway implements HarnessGateway
         return $this->devices[$deviceId] ?? null;
     }
 
+    public function findDeviceByStoreAndSecretHash(string $storeId, string $secretHash): ?array
+    {
+        $found = null;
+        foreach ($this->devices as $device) {
+            if ($device['store_id'] === $storeId && hash_equals($device['secret_sha256'], $secretHash)) {
+                if ($found !== null) { return null; }
+                $found = $device;
+            }
+        }
+        return $found;
+    }
+
     public function touchDeviceAuthenticated(string $deviceId, string $at): void
     {
         if (isset($this->devices[$deviceId])) {

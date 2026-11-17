@@ -65,10 +65,19 @@ final class IngestService
 
         // Device credentials are scoped to one store; failures share one envelope.
         if (($this->config['replication_auth_bypass'] ?? false) !== true) {
-            $id = Uuid::tryNormalize($request->header('x-kandoo-device-id') ?? '');
-            $secret = $request->header('x-kandoo-device-secret');
-            $device = $id === null ? null : $this->gateway->findDevice($id);
             $routeId = Uuid::tryNormalize($routeStoreId);
+            $authorization = $request->header('authorization');
+            if ($authorization !== null) {
+                // An explicitly supplied invalid Bearer must never fall back to legacy credentials.
+                $secret = preg_match('/^Bearer ([\x21-\x7E]{1,4096})$/iD', $authorization, $match) === 1 ? $match[1] : null;
+                $device = $routeId !== null && $secret !== null
+                    ? $this->gateway->findDeviceByStoreAndSecretHash($routeId, hash('sha256', $secret)) : null;
+                $id = $device['device_id'] ?? null;
+            } else {
+                $id = Uuid::tryNormalize($request->header('x-kandoo-device-id') ?? '');
+                $secret = $request->header('x-kandoo-device-secret');
+                $device = $id === null ? null : $this->gateway->findDevice($id);
+            }
             if ($device === null || !is_string($secret) || $secret === '' || $routeId === null
                 || $device['store_id'] !== $routeId
                 || !hash_equals($device['secret_sha256'], hash('sha256', $secret))) {
