@@ -11,3 +11,4 @@
 - P-23 C-80b: Record the new Bearer-versus-two-device-header mismatch and retain store-bound authentication until an approved cross-stack wire contract resolves it; rejected bypassing auth or claiming interoperability from independent CI.
 - P-27: Resolve Bearer by existing store-scoped SHA-256 digest with ambiguity rejected and explicit Authorization precedence; preserve legacy headers, avoiding a schema migration and preventing downgrade on invalid Bearer. See executive addendum `docs/CONTRACT-ADDENDUM-P27.md`.
 - P-23: Halt actual Hub replay on discovering C-80b serializes the device secret into the JSON body as well as the Authorization header; rejected silently altering the real transport or using owner credentials before a C# fix and regression test.
+- P-23: Replay pinned C-83 Hub transport over loopback HTTP against isolated real MariaDB with synthetic golden-derived v1.1 data and auth enabled; rejected mocks or independent CI as proof of a real wire call.

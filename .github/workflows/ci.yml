@@ -100,6 +100,34 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
+      - name: Checkout pinned Hub C-83 for real transport replay
+        if: matrix.php == '8.1'
+        uses: actions/checkout@v4
+        with:
+          repository: majid-ghanbari-dost/Kandoo
+          ref: 6903377f1a2e5832e63153df4306b2ee548b6f9c
+          path: .hub-p23
+          persist-credentials: false
+
+      - name: Setup .NET for Hub transport replay
+        if: matrix.php == '8.1'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: P-23 real C-83 Hub to PHP HTTP replay
+        if: matrix.php == '8.1'
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'kill "${server:-0}" 2>/dev/null || true; rm -rf "$tmp"' EXIT
+          php tests/HubReplay/prepare.php "$tmp/config.php" "$tmp/batch.json"
+          export KANDOO_CONFIG="$tmp/config.php"
+          php -S 127.0.0.1:18083 -t public public/index.php > "$tmp/server.log" 2>&1 & server=$!
+          python3 -c 'import socket,time; s=socket.socket(); [(time.sleep(.1)) for _ in range(100) if s.connect_ex(("127.0.0.1",18083)) != 0]; s.close()'
+          dotnet run --project tests/HubReplay/HubReplay.csproj -p:HubProject="$GITHUB_WORKSPACE/.hub-p23/src/Kandoo.Hub/Kandoo.Hub.csproj" -- "$tmp/batch.json"
+          php tests/HubReplay/check-pages.php
+
       - name: Local in-process health load smoke test
         run: php tools/dev/load-health.php
 
