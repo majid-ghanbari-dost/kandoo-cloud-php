@@ -76,7 +76,7 @@ final class Kernel
             return $service->handle($request);
         }
 
-        if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/') || $path === '/v1/customer/invoices') {
+        if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/') || $path === '/v1/customer/invoices' || preg_match('#^/v1/customer/invoices/[^/]+/[^/]+$#D', $path) === 1) {
             $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
                 $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock,
                 ($this->config['env'] ?? '') === 'demo'

@@ -93,11 +93,39 @@ final class CustomerPages
             return Response::html(200, Html::renderCustomerInvoicePage($row), ['Cache-Control' => 'no-store', 'Referrer-Policy' => 'no-referrer']);
         }
         // Native clients use the same random, expiring, revocable customer session as the browser.
-        if ($path === '/v1/customer/invoices' && $method === 'GET') {
+        if ($method === 'GET' && ($path === '/v1/customer/invoices' || preg_match('#^/v1/customer/invoices/([^/]+)/([^/]+)$#D', $path, $nativeInvoice) === 1)) {
             $authorization = $request->header('authorization') ?? '';
             $token = preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD', $authorization, $match) === 1 ? $match[1] : '';
             $phone = $this->auth->phoneForToken($token);
             if ($phone === null) { return $this->jsonError(401, 'UNAUTHENTICATED'); }
+            if ($path !== '/v1/customer/invoices') {
+                $row = $this->auth->invoice($phone, $nativeInvoice[1], $nativeInvoice[2]);
+                if ($row === null) { return $this->jsonError(404, 'NOT_FOUND'); }
+                if ($this->legalGate) { return $this->jsonError(503, 'LEGAL_COPY_UNAVAILABLE'); }
+                $items = json_decode((string)$row['line_items'], true, 512, JSON_THROW_ON_ERROR);
+                if (!is_array($items)) { throw new \UnexpectedValueException('Invalid recorded invoice lines'); }
+                $safeItems = [];
+                foreach ($items as $item) {
+                    if (!is_array($item)) { throw new \UnexpectedValueException('Invalid recorded invoice line'); }
+                    $safeItems[] = ['product_name'=>$item['product_name'] ?? '',
+                        'quantity_millis'=>$item['quantity_millis'] ?? 0,
+                        'unit_price_rials'=>$item['unit_price_rials'] ?? 0,
+                        'line_total_rials'=>$item['line_total_rials'] ?? 0];
+                }
+                $invoice = ['store_id'=>$row['store_id'], 'invoice_id'=>$row['invoice_id'],
+                    'store_name'=>$row['store_name'], 'display_number'=>(int)$row['display_number'],
+                    'lifecycle_status'=>$row['lifecycle_status'], 'issued_at'=>\Kandoo\Cloud\Service\PublicInvoiceService::formatIssuedAtIso((string)$row['issued_at']),
+                    'payable_rials'=>(int)$row['payable_rials'], 'line_items'=>$safeItems];
+                foreach (['customer_name','currency_unit','remaining_balance'] as $key) {
+                    if (($row[$key] ?? null) !== null) { $invoice[$key] = $key === 'remaining_balance' ? (int)$row[$key] : $row[$key]; }
+                }
+                if (($row['payments'] ?? null) !== null) {
+                    $payments=json_decode((string)$row['payments'],true,512,JSON_THROW_ON_ERROR);
+                    if (!is_array($payments)) { throw new \UnexpectedValueException('Invalid recorded payments'); }
+                    $invoice['payments']=array_map(static fn(array $payment): array => ['type'=>$payment['type'] ?? '', 'amount'=>$payment['amount'] ?? 0],$payments);
+                }
+                return Response::json(200, ['invoice'=>$invoice], ['Cache-Control'=>'no-store']);
+            }
             $groups = [];
             foreach ($this->auth->invoices($phone) as $row) {
                 $store = $row['store_id'];

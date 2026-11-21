@@ -73,6 +73,18 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $this->assertCount(1,$native['stores'][0]['invoices']);
         $this->assertStringNotContainsString('profit',strtolower($apiList->body()));
         $this->assertStringNotContainsString('TEST Other',$apiList->body());
+        $nativePath='/v1/customer/invoices/'.self::STORE.'/'.self::INVOICE;
+        $this->assertSame(401,$kernel->handle(new Request('GET',$nativePath))->status());
+        $nativeDetail=$kernel->handle(new Request('GET',$nativePath,['authorization'=>'Bearer '.$session[1]]));
+        $this->assertSame(200,$nativeDetail->status());
+        $this->assertSame(25000,json_decode($nativeDetail->body(),true)['invoice']['payable_rials']);
+        $this->assertStringNotContainsString('public_token',$nativeDetail->body());
+        $this->assertStringNotContainsString('profit',strtolower($nativeDetail->body()));
+        $otherPath='/v1/customer/invoices/'.self::STORE.'/cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+        $this->assertSame(404,$kernel->handle(new Request('GET',$otherPath,['authorization'=>'Bearer '.$session[1]]))->status());
+        $gateConfig=$config; $gateConfig['public_legal_copy_required']=true;
+        $gateKernel=new Kernel($gateConfig,$gateway,$clock,$auth);
+        $this->assertSame(503,$gateKernel->handle(new Request('GET',$nativePath,['authorization'=>'Bearer '.$session[1]]))->status());
         $cookie2 = ['cookie'=>'kandoo_session='.$session[1]];
         $list = $kernel->handle(new Request('GET','/account/invoices',$cookie2));
         $this->assertSame(200, $list->status()); $this->assertStringContainsString('TEST Store', $list->body());
