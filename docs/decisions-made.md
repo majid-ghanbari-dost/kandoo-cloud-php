@@ -16,3 +16,4 @@
 - P-31: Propose an opt-in bearer-authenticated customer invoice list grouped by store, reusing existing OTP/session and D-C controls; rejected returning raw projection rows or changing frozen contract files.
 - P-34: Publish bounded security findings and label the existing MariaDB load as nonrepresentative until real host configuration is known; rejected claiming a production capacity or security sign-off from a synthetic single-worker test.
 - P-33: Draft fixed notification and single-variable OTP registration templates with an explicit final-domain placeholder and privacy review preserving P-15 evidence; rejected live SMS, unapproved deletion or guessed provider prices.
+- P-30: Begin with a non-executable shared-host deployment checklist and explicit restore/self-test gaps; rejected untested backup/restore commands or leaking credentials in a web diagnostic.
