@@ -92,6 +92,20 @@ final class CustomerPages
             if ($this->legalGate) { return Response::emptyBody(503, ['Cache-Control' => 'no-store']); }
             return Response::html(200, Html::renderCustomerInvoicePage($row), ['Cache-Control' => 'no-store', 'Referrer-Policy' => 'no-referrer']);
         }
+        // Native clients use the same random, expiring, revocable customer session as the browser.
+        if ($path === '/v1/customer/invoices' && $method === 'GET') {
+            $authorization = $request->header('authorization') ?? '';
+            $token = preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD', $authorization, $match) === 1 ? $match[1] : '';
+            $phone = $this->auth->phoneForToken($token);
+            if ($phone === null) { return $this->jsonError(401, 'UNAUTHENTICATED'); }
+            $groups = [];
+            foreach ($this->auth->invoices($phone) as $row) {
+                $store = $row['store_id'];
+                if (!isset($groups[$store])) { $groups[$store] = ['store_id'=>$store, 'store_name'=>$row['store_name'], 'invoices'=>[]]; }
+                $groups[$store]['invoices'][] = ['invoice_id'=>$row['invoice_id'], 'display_number'=>(int)$row['display_number']];
+            }
+            return Response::json(200, ['stores'=>array_values($groups)], ['Cache-Control'=>'no-store']);
+        }
         // JSON API uses explicit content type, no browser cookies, and exposes no CORS policy.
         if ($method === 'POST' && ($path === '/v1/customer/otp/challenges' || preg_match('#^/v1/customer/otp/challenges/([^/]+)/verify$#D', $path, $m) === 1)) {
             if (strtolower(trim(explode(';', $request->header('content-type') ?? '')[0])) !== 'application/json') { return $this->jsonError(400, 'INVALID'); }

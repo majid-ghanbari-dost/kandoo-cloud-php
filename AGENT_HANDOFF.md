@@ -4,7 +4,7 @@ This document is maintained under standing order SO-01.
 
 ## ORDER 16 — active (manager coordination date 2026-11-21)
 
-Manager superseded standby and ordered P-30–P-34 immediately, P-35 only after all MUSTs green. Read C# main `docs/orders/ORDER-16.md` and `docs/OPERATING-RULES-v2.md`; implement on fixed active branch; no main merge. Customer API v1.2 is additive proposal only; preserve frozen contract. `docs/questions/Q-O16-DELIVERY-BOUNDARIES.md` records fixed-branch versus per-task PR and order-tag versus v2 no-tag conflict, and absent O15 post-merge baseline; no tags pending resolution. Preserve O15 acceptance limitations and real data. One report per task under `docs/reports/`; updates must be honest and no invented green CI. P-31 in progress; other MUSTs pending.
+Manager superseded standby and ordered P-30–P-34 immediately, P-35 only after all MUSTs green. Read C# main `docs/orders/ORDER-16.md` and `docs/OPERATING-RULES-v2.md`; implement on fixed active branch; no main merge. Customer API v1.2 is additive proposal only; preserve frozen contract. `docs/questions/Q-O16-DELIVERY-BOUNDARIES.md` records fixed-branch versus per-task PR and order-tag versus v2 no-tag conflict, and absent O15 post-merge baseline; no tags pending resolution. Preserve O15 acceptance limitations and real data. One report per task under `docs/reports/`; updates must be honest and no invented green CI. P-31 in progress: proposed additive Customer API and opt-in session-scoped grouped invoice list; test/CI pending, cross-stack vectors and Android not proven. Other MUSTs pending.
 
 ## Multi-agent handoff reference — active
 

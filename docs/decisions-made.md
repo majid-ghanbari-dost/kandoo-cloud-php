@@ -13,3 +13,4 @@
 - P-23: Halt actual Hub replay on discovering C-80b serializes the device secret into the JSON body as well as the Authorization header; rejected silently altering the real transport or using owner credentials before a C# fix and regression test.
 - P-23: Replay pinned C-83 Hub transport over loopback HTTP against isolated real MariaDB with synthetic golden-derived v1.1 data and auth enabled; rejected mocks or independent CI as proof of a real wire call.
 - P-25: Handoff records personally inspected CI and unresolved Windows, real-Hub-v1.1 and customer-demo limits; rejected conflating green CI with manager acceptance or full owner-machine proof.
+- P-31: Propose an opt-in bearer-authenticated customer invoice list grouped by store, reusing existing OTP/session and D-C controls; rejected returning raw projection rows or changing frozen contract files.

@@ -58,6 +58,21 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $verify = $kernel->handle(new Request('POST','/account/verify',['cookie'=>$cookie],[],http_build_query(['csrf'=>$csrf[1], 'challenge'=>$id[1], 'code'=>$sms->codes[0]])));
         $this->assertSame(303, $verify->status()); $this->assertStringContainsString('HttpOnly', $verify->header('Set-Cookie'));
         preg_match('/kandoo_session=([^;]+)/', $verify->header('Set-Cookie'), $session); $this->assertNotEmpty($session[1]);
+        // Native API: only the session owner can list their own invoices, grouped by store.
+        $missing=$kernel->handle(new Request('GET','/v1/customer/invoices'));
+        $this->assertSame(401,$missing->status());
+        $invalid=$kernel->handle(new Request('GET','/v1/customer/invoices',['authorization'=>'Bearer '.str_repeat('A',43)]));
+        $this->assertSame(401,$invalid->status());
+        $apiList=$kernel->handle(new Request('GET','/v1/customer/invoices',['authorization'=>'Bearer '.$session[1]]));
+        $this->assertSame(200,$apiList->status());
+        $this->assertSame('no-store',$apiList->header('Cache-Control'));
+        $native=json_decode($apiList->body(),true);
+        $this->assertCount(1,$native['stores']);
+        $this->assertSame(self::STORE,$native['stores'][0]['store_id']);
+        $this->assertSame(self::INVOICE,$native['stores'][0]['invoices'][0]['invoice_id']);
+        $this->assertCount(1,$native['stores'][0]['invoices']);
+        $this->assertStringNotContainsString('profit',strtolower($apiList->body()));
+        $this->assertStringNotContainsString('TEST Other',$apiList->body());
         $cookie2 = ['cookie'=>'kandoo_session='.$session[1]];
         $list = $kernel->handle(new Request('GET','/account/invoices',$cookie2));
         $this->assertSame(200, $list->status()); $this->assertStringContainsString('TEST Store', $list->body());
