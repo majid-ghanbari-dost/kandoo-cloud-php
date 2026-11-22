@@ -6,4 +6,6 @@ On successful verification, the existing response contains `status: OK` and a ra
 
 An owned invoice detail may be read at `GET /v1/customer/invoices/{store_id}/{invoice_id}` with the same Bearer. It returns `{ "invoice": ... }` with only recorded store, invoice, lifecycle, issue time, payable, whitelisted line items and recorded optional v1.1 values. A foreign or unknown invoice returns identical 404; missing/invalid session returns 401; the legal-copy gate produces 503. A public token, raw issued payload, purchase price and profit are never returned. The route is opt-in and no existing frozen document is edited.
 
-This is a proposal, not a jointly approved Android contract. Shared cross-lane golden vectors, exact lifecycle and pagination decisions, logout/revocation integration and any new frozen-contract semantics remain to be reviewed; do not represent this proposal as a finalized shared contract.
+An authenticated `DELETE /v1/customer/session` revokes the presented session and returns `{ "status": "REVOKED" }` (200); missing, expired or revoked tokens return 401. OTP JSON requests larger than 4096 bytes are rejected.
+
+This is a proposal, not a jointly approved Android contract. Shared cross-lane golden vectors, lifecycle and pagination decisions, and any new frozen-contract semantics remain to be reviewed; do not represent this proposal as a finalized shared contract.

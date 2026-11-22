@@ -132,6 +132,42 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         foreach (['cloud_customer_sessions', 'cloud_otp_challenges', 'cloud_sms_announcements', 'cloud_customer_phones', 'cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
     }
 
+    public function testNativeOtpListDetailLogoutAndDeviceBinding(): void
+    {
+        $db=$this->db(); $pdo=$db->pdo(); $gateway=new MariaDbGateway($db); $gateway->reset();
+        foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_customer_phones','cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
+        $gateway->seedStore(['store_id'=>self::STORE,'active_writer_device_id'=>self::STORE,'active_writer_epoch'=>1,'accepted_through_seq'=>0,'entry_count'=>0,'head_entry_hash'=>null,'projection_version'=>0]);
+        $gateway->seedProjection(['public_token'=>'TESTNATIVETOKEN12345678901','public_token_hash'=>hash('sha256','TESTNATIVETOKEN12345678901'),'digital_invoice_id'=>self::INVOICE,'invoice_id'=>self::INVOICE,'store_id'=>self::STORE,'store_name'=>'TEST Store','display_number'=>7,'lifecycle_status'=>'ISSUED','issued_at'=>'2026-01-02 03:04:05','issued_payload'=>'{}','issued_content_sha256'=>str_repeat('a',64),'payable_rials'=>25000,'line_items'=>'[]','customer_phone'=>self::PHONE]);
+        $q=$pdo->prepare('INSERT INTO cloud_sms_announcements (announcement_id,store_id,invoice_id,phone,delivered_at) VALUES (?,?,?,?,?)');
+        $q->execute([self::ANNOUNCEMENT,self::STORE,self::INVOICE,self::PHONE,1767323045]);
+        $settings=['enabled'=>true,'code_length'=>6,'code_ttl_seconds'=>300,'max_attempts'=>3,'codes_per_announcement'=>2,'issue_window_seconds'=>900,'max_issues_per_window'=>3,'session_ttl_seconds'=>3600,'otp_pepper'=>'TEST-only-synthetic-otp-pepper-0123456789','telegram_url'=>null];
+        $transport=new class implements OtpTransport { public string $code=''; public function sendCode(string $phone,string $code): bool { $this->code=$code; return true; } };
+        $clock=new FixedClock(1767323045); $auth=new CustomerAuth($settings,$db,$clock,$transport); $config=self::$config; $config['customer_auth']=$settings;
+        $kernel=new Kernel($config,$gateway,$clock,$auth); $device=str_repeat('Q',43);
+        $headers=['content-type'=>'application/json','idempotency-key'=>'TEST-native-issue','x-kandoo-device'=>$device];
+        try {
+            $issue=$kernel->handle(new Request('POST','/v1/customer/otp/challenges',$headers,[],json_encode(['phone'=>self::PHONE]),null,'192.0.2.1'));
+            $this->assertSame(201,$issue->status()); $body=json_decode($issue->body(),true); $this->assertSame('OTP_SENT',$body['status']);
+            $path='/v1/customer/otp/challenges/'.$body['challenge_id'].'/verify';
+            $wrongDevice=$headers; $wrongDevice['x-kandoo-device']=str_repeat('Z',43);
+            $this->assertSame(400,$kernel->handle(new Request('POST',$path,$wrongDevice,[],json_encode(['code'=>$transport->code]),null,'192.0.2.1'))->status());
+            $verify=$kernel->handle(new Request('POST',$path,$headers,[],json_encode(['code'=>$transport->code]),null,'192.0.2.1'));
+            $this->assertSame(200,$verify->status()); $session=json_decode($verify->body(),true)['token'];
+            $bearer=['authorization'=>'Bearer '.$session];
+            $list=$kernel->handle(new Request('GET','/v1/customer/invoices',$bearer));
+            $this->assertSame(200,$list->status()); $view=json_decode($list->body(),true);
+            $this->assertSame(self::INVOICE,$view['stores'][0]['invoices'][0]['invoice_id']);
+            $detail=$kernel->handle(new Request('GET','/v1/customer/invoices/'.self::STORE.'/'.self::INVOICE,$bearer));
+            $this->assertSame(200,$detail->status());
+            $this->assertSame(200,$kernel->handle(new Request('DELETE','/v1/customer/session',$bearer))->status());
+            $this->assertSame(401,$kernel->handle(new Request('GET','/v1/customer/invoices',$bearer))->status());
+            $this->assertSame(401,$kernel->handle(new Request('DELETE','/v1/customer/session',$bearer))->status());
+        } finally {
+            foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_customer_phones','cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
+            $gateway->reset();
+        }
+    }
+
     public function testIpBucketIsAtomicAndIndependentByAction(): void
     {
         $gateway=new MariaDbGateway($this->db());

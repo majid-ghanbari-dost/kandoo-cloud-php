@@ -92,6 +92,13 @@ final class CustomerPages
             if ($this->legalGate) { return Response::emptyBody(503, ['Cache-Control' => 'no-store']); }
             return Response::html(200, Html::renderCustomerInvoicePage($row), ['Cache-Control' => 'no-store', 'Referrer-Policy' => 'no-referrer']);
         }
+        if ($path === '/v1/customer/session' && $method === 'DELETE') {
+            $authorization=$request->header('authorization') ?? '';
+            $token=preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD',$authorization,$match) === 1 ? $match[1] : '';
+            if ($this->auth->phoneForToken($token) === null) { return $this->jsonError(401,'UNAUTHENTICATED'); }
+            $this->auth->revokeSession($token);
+            return Response::json(200, ['status'=>'REVOKED'], ['Cache-Control'=>'no-store']);
+        }
         // Native clients use the same random, expiring, revocable customer session as the browser.
         if ($method === 'GET' && ($path === '/v1/customer/invoices' || preg_match('#^/v1/customer/invoices/([^/]+)/([^/]+)$#D', $path, $nativeInvoice) === 1)) {
             $authorization = $request->header('authorization') ?? '';
@@ -137,6 +144,7 @@ final class CustomerPages
         // JSON API uses explicit content type, no browser cookies, and exposes no CORS policy.
         if ($method === 'POST' && ($path === '/v1/customer/otp/challenges' || preg_match('#^/v1/customer/otp/challenges/([^/]+)/verify$#D', $path, $m) === 1)) {
             if (strtolower(trim(explode(';', $request->header('content-type') ?? '')[0])) !== 'application/json') { return $this->jsonError(400, 'INVALID'); }
+            if (strlen($request->body()) > 4096) { return $this->jsonError(400, 'INVALID'); }
             $input = json_decode($request->body(), true);
             if (!is_array($input)) { return $this->jsonError(400, 'INVALID'); }
             if ($path === '/v1/customer/otp/challenges') {
