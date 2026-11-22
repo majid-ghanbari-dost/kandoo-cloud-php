@@ -2,6 +2,12 @@
 
 This document is maintained under standing order SO-01.
 
+## M-003 baseline integration — 2026-11-22
+
+PM PR #4 merged into PHP main at `ad1efce6948f7e3ac4cb26df473507b56808dad4`. Fetched origin and merged origin/main into the active branch without rebase at merge commit `91e2d2954b779d72090fae1aaeece06e331f80a6`; push CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45000605111 green on PHP 8.1/8.5 and MariaDB, smoke and Hub replay green, artifacts uploaded. Node action deprecation warning only. PR #3 is still a draft: https://github.com/majid-ghanbari-dost/kandoo-cloud-php/pull/3.
+
+Important: PR #3 is NOT strictly ORDER 16-only in its file diff. Its application code changes are ORDER 16, but seven post-tag ORDER 15 documentation items remain vs main: modified `docs/ORDER15-HANDOFF-FA.md` and six `docs/acceptance-o15/P-*.md` reports. They record independent acceptance evidence and post-tag P-25 CI, and were deliberately preserved rather than silently discarded. PR description discloses them. The baseline contains the accepted O15 code and P-27. Do not assert strict O16-only status until these documentation differences are resolved. Baseline branch left untouched. C# main `docs/reports/ORDER-16-C-92.md` returned 404 at check; P-31 remains PENDING-CROSS-LANE until review lands. No O16 tags before finished+green.
+
 ## Latest continuation — supersedes historical standby notes
 
 Manager authorized independent ORDER 16 work while PM resolves the O15 baseline PR. P-31 first; baseline `2724969fd85475c777016d54d61abe3789a6773a` includes P-27 `ac5bcc334d75563180abaad3356bd3d994bf3bb5` (merge-base ancestor exit 0). No separate branch or PR was created. Continue on `arena/f729618f-kandoo-cloud-php`; do not merge PR #3 or rewrite history.
