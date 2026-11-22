@@ -144,28 +144,52 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $transport=new class implements OtpTransport { public string $code=''; public function sendCode(string $phone,string $code): bool { $this->code=$code; return true; } };
         $clock=new FixedClock(1767323045); $auth=new CustomerAuth($settings,$db,$clock,$transport); $config=self::$config; $config['customer_auth']=$settings;
         $kernel=new Kernel($config,$gateway,$clock,$auth); $device=str_repeat('Q',43);
-        $headers=['content-type'=>'application/json','idempotency-key'=>'TEST-native-issue','x-kandoo-device'=>$device];
+        // The same language-neutral proposed vectors can be replayed by C-92.
+        $vectors=json_decode(file_get_contents(__DIR__.'/../../docs/vectors/customer-api-v1-2-proposed.json'),true,512,JSON_THROW_ON_ERROR);
+        $vars=$vectors['setup'];
+        $resolve=static function ($value) use (&$resolve, &$vars) {
+            if (is_array($value)) { return array_map($resolve,$value); }
+            if (!is_string($value)) { return $value; }
+            return preg_replace_callback('/\{\{([a-z_]+)\}\}/',static function ($match) use (&$vars) {
+                if (!isset($vars[$match[1]]) || !is_string($vars[$match[1]])) { throw new \RuntimeException('Missing vector variable: '.$match[1]); }
+                return $vars[$match[1]];
+            },$value);
+        };
         try {
-            $issue=$kernel->handle(new Request('POST','/v1/customer/otp/challenges',$headers,[],json_encode(['phone'=>self::PHONE]),null,'192.0.2.1'));
-            $this->assertSame(201,$issue->status()); $body=json_decode($issue->body(),true); $this->assertSame('OTP_SENT',$body['status']);
-            $path='/v1/customer/otp/challenges/'.$body['challenge_id'].'/verify';
-            $wrongDevice=$headers; $wrongDevice['x-kandoo-device']=str_repeat('Z',43);
-            $this->assertSame(400,$kernel->handle(new Request('POST',$path,$wrongDevice,[],json_encode(['code'=>$transport->code]),null,'192.0.2.1'))->status());
-            $verify=$kernel->handle(new Request('POST',$path,$headers,[],json_encode(['code'=>$transport->code]),null,'192.0.2.1'));
-            $this->assertSame(200,$verify->status()); $session=json_decode($verify->body(),true)['token'];
-            $bearer=['authorization'=>'Bearer '.$session];
-            $list=$kernel->handle(new Request('GET','/v1/customer/invoices',$bearer));
-            $this->assertSame(200,$list->status()); $view=json_decode($list->body(),true);
-            $this->assertSame(self::INVOICE,$view['stores'][0]['invoices'][0]['invoice_id']);
-            $detail=$kernel->handle(new Request('GET','/v1/customer/invoices/'.self::STORE.'/'.self::INVOICE,$bearer));
-            $this->assertSame(200,$detail->status());
-            $this->assertSame(200,$kernel->handle(new Request('DELETE','/v1/customer/session',$bearer))->status());
-            $this->assertSame(401,$kernel->handle(new Request('GET','/v1/customer/invoices',$bearer))->status());
-            $this->assertSame(401,$kernel->handle(new Request('DELETE','/v1/customer/session',$bearer))->status());
+            foreach ($vectors['steps'] as $step) {
+                $vars['otp']=$transport->code;
+                $headers=$resolve($step['headers']);
+                $body=isset($step['body']) ? json_encode($resolve($step['body']),JSON_THROW_ON_ERROR) : '';
+                $response=$kernel->handle(new Request($step['method'],$resolve($step['path']),$headers,[],$body,null,'192.0.2.1'));
+                $this->assertSame($step['expect']['http'],$response->status(),$step['id']);
+                $this->assertSame('no-store',$response->header('Cache-Control'),$step['id']);
+                $actual=json_decode($response->body(),true,512,JSON_THROW_ON_ERROR);
+                $this->assertVectorSubset($resolve($step['expect']['body']),$actual,$step['id']);
+                foreach (($step['expect']['capture'] ?? []) as $name=>$field) {
+                    $this->assertIsString($actual[$field] ?? null,$step['id'].' capture '.$field);
+                    $vars[$name]=$actual[$field];
+                }
+            }
+            $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43}$/D',$vars['session']);
+            $this->assertSame(1,(int)$pdo->query('SELECT code_issues FROM cloud_sms_announcements')->fetchColumn());
         } finally {
             foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_customer_phones','cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
             $gateway->reset();
         }
+    }
+
+    /** Objects are required subsets; arrays remain exact, including order and count. */
+    private function assertVectorSubset($expected, $actual, string $label): void
+    {
+        if (is_array($expected) && $expected !== [] && array_keys($expected) !== range(0,count($expected)-1)) {
+            $this->assertIsArray($actual,$label);
+            foreach ($expected as $key=>$value) {
+                $this->assertArrayHasKey($key,$actual,$label);
+                $this->assertVectorSubset($value,$actual[$key],$label.'.'.$key);
+            }
+            return;
+        }
+        $this->assertSame($expected,$actual,$label);
     }
 
     public function testIpBucketIsAtomicAndIndependentByAction(): void
