@@ -48,6 +48,15 @@ final class Kernel
     {
         $path = $request->path();
         $method = $request->method();
+        if (($this->config['env'] ?? '') === 'demo') {
+            $peer = $request->clientIp();
+            if (!\Kandoo\Cloud\Demo\Lan::localPeer($peer)) { return Response::emptyBody(403); }
+            // The admin password must not cross even the trusted LAN in cleartext.
+            $host = (string) parse_url((string) $this->config['base_url'], PHP_URL_HOST);
+            if (($path === '/admin' || $path === '/admin/') && !in_array($peer, ['127.0.0.1', '::1', $host], true)) {
+                return Response::emptyBody(403);
+            }
+        }
 
         if ($path === '/admin' || $path === '/admin/') {
             $reset = null;
@@ -57,16 +66,24 @@ final class Kernel
                     return $auth->resetBudget($phone);
                 };
             }
-            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset);
+            $outbox = null;
+            if (($this->config['env'] ?? '') === 'demo') {
+                $outbox = function (): array {
+                    return (new Database($this->config))->pdo()->query('SELECT phone,kind,body,created_at FROM cloud_demo_sms_outbox ORDER BY created_at DESC,message_id DESC LIMIT 100')->fetchAll();
+                };
+            }
+            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset, $outbox);
             return $service->handle($request);
         }
 
         if (str_starts_with($path, '/account/') || str_starts_with($path, '/v1/customer/otp/')) {
             $auth = $this->customerAuth ?? new \Kandoo\Cloud\Customer\CustomerAuth(
                 $this->config['customer_auth'] ?? ['enabled' => false], new Database($this->config), $this->clock,
-                ($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null
+                ($this->config['env'] ?? '') === 'demo'
+                    ? new \Kandoo\Cloud\Demo\DemoSms($this->config, new Database($this->config), $this->clock, getenv('KANDOO_DEMO_DIR') ?: kandoo_app_root().'/.kandoo-demo')
+                    : (($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null)
             );
-            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock))->handle($request);
+            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock, ($this->config['env'] ?? '') === 'demo'))->handle($request);
         }
 
         if ($path === '/health') {

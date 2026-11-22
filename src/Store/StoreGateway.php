@@ -29,6 +29,9 @@ interface StoreGateway
     /** @return array<string, mixed>|null */
     public function findDevice(string $deviceId): ?array;
 
+    /** Return a unique store-scoped digest match, or null for none/ambiguous. @return array<string, mixed>|null */
+    public function findDeviceByStoreAndSecretHash(string $storeId, string $secretHash): ?array;
+
     public function touchDeviceAuthenticated(string $deviceId, string $at): void;
 
     public function isAdminEnabled(): bool;

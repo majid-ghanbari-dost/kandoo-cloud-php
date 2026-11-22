@@ -48,6 +48,16 @@ final class MariaDbGateway implements HarnessGateway
         return $row;
     }
 
+    public function findDeviceByStoreAndSecretHash(string $storeId, string $secretHash): ?array
+    {
+        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE store_id = ? AND secret_sha256 = ? LIMIT 2');
+        $stmt->execute([$storeId, $secretHash]);
+        $rows = $stmt->fetchAll();
+        if (count($rows) !== 1) { return null; }
+        $rows[0]['verified'] = (bool) $rows[0]['verified'];
+        return $rows[0];
+    }
+
     public function touchDeviceAuthenticated(string $deviceId, string $at): void
     {
         $stmt = $this->pdo()->prepare('UPDATE cloud_replication_devices SET verified = 1, last_authenticated_at = ? WHERE device_id = ?');

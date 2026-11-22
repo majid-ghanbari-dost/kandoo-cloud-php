@@ -29,6 +29,14 @@ use Kandoo\Cloud\Support\Jalali;
  */
 final class Html
 {
+    /** Customer-only adaptation; preserve the frozen public renderer. */
+    public static function renderCustomerInvoicePage(array $row): string
+    {
+        $page = self::renderInvoicePage($row);
+        $page = str_replace('--radius: 14px;', '--radius: 16px;', $page);
+        return str_replace('</style>', '@media(max-width:600px){.sheet{margin:12px;padding:18px}table.lines{display:block;overflow-x:auto}.facts{grid-template-columns:auto 1fr}}' . '</style>', $page);
+    }
+
     /** @param array<string, mixed> $row projection row */
     public static function renderInvoicePage(array $row): string
     {

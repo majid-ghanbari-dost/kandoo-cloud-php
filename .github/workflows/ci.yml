@@ -10,10 +10,12 @@ on:
       - arena/928d944b-kandoo-cloud-php
       - main
       - arena/ae9da477-kandoo-cloud-php
+      - arena/f729618f-kandoo-cloud-php
     tags:
       - 'stable-*'
       - 'w11-*'
       - 'o14-P-*'
+      - 'o15-P-*'
   pull_request:
     branches:
       - main
@@ -42,7 +44,11 @@ jobs:
   phpunit:
     env:
       KANDOO_BLOCK_REAL_SMS: '1'
-    name: PHPUnit (PHP 8.1 + MariaDB 10.6)
+    name: PHPUnit (PHP ${{ matrix.php }} + MariaDB 10.6)
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.5']
     runs-on: ubuntu-22.04
     services:
       mariadb:
@@ -50,6 +56,7 @@ jobs:
         env:
           # FAKE CI-only credentials, generated per run — never real, never committed.
           MYSQL_ROOT_PASSWORD: TEST-root-pass
+          MYSQL_ROOT_HOST: "%"
           MYSQL_DATABASE: TEST_kandoo_cloud
           MYSQL_USER: TEST_kandoo_user
           MYSQL_PASSWORD: TEST-DB-PASSWORD
@@ -65,12 +72,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup PHP 8.1
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: ${{ matrix.php }}
           extensions: pdo_mysql, mbstring
           coverage: none
+
+      - name: Record exact PHP version
+        run: php -r 'echo "::notice title=PHP runtime::PHP ", PHP_VERSION, PHP_EOL;'
 
       - name: Fetch PHPUnit 9 (CI may fetch PHPUnit; the deployed tree has no vendor deps)
         run: |
@@ -90,8 +100,39 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
+      - name: Checkout pinned Hub C-83 for real transport replay
+        if: matrix.php == '8.1'
+        uses: actions/checkout@v4
+        with:
+          repository: majid-ghanbari-dost/Kandoo
+          ref: 6903377f1a2e5832e63153df4306b2ee548b6f9c
+          path: .hub-p23
+          persist-credentials: false
+
+      - name: Setup .NET for Hub transport replay
+        if: matrix.php == '8.1'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: P-23 real C-83 Hub to PHP HTTP replay
+        if: matrix.php == '8.1'
+        run: |
+          set -euo pipefail
+          tmp=$(mktemp -d)
+          trap 'kill "${server:-0}" 2>/dev/null || true; rm -rf "$tmp"' EXIT
+          php tests/HubReplay/prepare.php "$tmp/config.php" "$tmp/batch.json"
+          export KANDOO_CONFIG="$tmp/config.php"
+          php -S 127.0.0.1:18083 -t public public/index.php > "$tmp/server.log" 2>&1 & server=$!
+          python3 -c 'import socket,time; s=socket.socket(); [(time.sleep(.1)) for _ in range(100) if s.connect_ex(("127.0.0.1",18083)) != 0]; s.close()'
+          dotnet run --project tests/HubReplay/HubReplay.csproj -p:HubProject="$GITHUB_WORKSPACE/.hub-p23/src/Kandoo.Hub/Kandoo.Hub.csproj" -- "$tmp/batch.json"
+          php tests/HubReplay/check-pages.php
+
       - name: Local in-process health load smoke test
         run: php tools/dev/load-health.php
+
+      - name: Concurrent local MariaDB read test (synthetic, not production capacity)
+        run: python3 tools/dev/load-mariadb.py --concurrency 50 --requests 100 --github-notice
 
       - name: Sample self-test (isolated database, no live SMS)
         run: php bin/selftest.php --sample
@@ -99,6 +140,7 @@ jobs:
       - name: PHPUnit (unit + contract suites; golden replay on memory AND MariaDB gateways)
         env:
           KANDOO_DB_TESTS: '1'
+          KANDOO_DEMO_TEST_ROOT_PASSWORD: TEST-root-pass
         run: |
           set +e
           php phpunit.phar --configuration phpunit.xml.dist --debug --log-junit phpunit-results.xml 2>&1 | tee phpunit-output.txt
@@ -118,7 +160,8 @@ jobs:
           output = Path('phpunit-output.txt')
           if output.exists():
               text = output.read_text(encoding='utf-8', errors='replace')
-              for line in text.splitlines():
+              # GitHub caps per-step annotations; publish the diagnostic tail first.
+              for line in text.splitlines()[-10:]:
                   line = line.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
                   print('::error::' + line)
           else:
@@ -129,7 +172,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: phpunit-output
+          name: phpunit-output-php-${{ matrix.php }}
           path: |
             phpunit-output.txt
             phpunit-results.xml

@@ -11,7 +11,7 @@ use Kandoo\Cloud\Support\Uuid;
 /** Reserve sends before contacting the provider; uncertain sends are never retried automatically. */
 final class AnnouncementService
 {
-    public function __construct(private Database $db, private FarazAdapter $adapter, private Clock $clock) {}
+    public function __construct(private Database $db, private FarazAdapter|\Kandoo\Cloud\Demo\DemoSms $adapter, private Clock $clock) {}
 
     public function send(string $requestId, string $storeId, string $invoiceId): string
     {

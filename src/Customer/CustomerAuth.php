@@ -115,6 +115,17 @@ final class CustomerAuth
         }
     }
 
+    /** Only the challenge-bound browser can learn whether its attempts are exhausted. */
+    public function challengeLocked(string $id, string $device): bool
+    {
+        if (!($this->config['enabled'] ?? false) || !self::validDevice($device) || Uuid::tryNormalize($id) !== $id) { return false; }
+        $q = $this->db->pdo()->prepare('SELECT device_hash,attempts FROM cloud_otp_challenges WHERE challenge_id=?');
+        $q->execute([$id]); $row=$q->fetch();
+        return $row !== false && is_string($row['device_hash'])
+            && hash_equals($row['device_hash'],hash_hmac('sha256',$device,$this->config['otp_pepper']))
+            && (int)$row['attempts'] >= $this->config['max_attempts'];
+    }
+
     public function phoneForToken(string $token): ?string
     {
         if (!($this->config['enabled'] ?? false) || preg_match('/^[A-Za-z0-9_-]{43}$/D', $token) !== 1) { return null; }

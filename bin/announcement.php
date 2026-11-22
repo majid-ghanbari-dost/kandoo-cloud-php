@@ -17,8 +17,12 @@ if (!isset($argv[1], $argv[2]) || !in_array($argv[1], ['send', 'show', 'confirm'
 }
 try {
     $config = Config::load()->all();
-    if (!($config['faraz_sms']['enabled'] ?? false)) { throw new RuntimeException('SMS disabled'); }
-    $db = new Database($config); $service = new AnnouncementService($db, new FarazAdapter($config['faraz_sms']), new SystemClock());
+    $db = new Database($config); $clock = new SystemClock();
+    if (($config['env'] ?? '') === 'demo') {
+        $adapter = new \Kandoo\Cloud\Demo\DemoSms($config,$db,$clock,getenv('KANDOO_DEMO_DIR') ?: kandoo_app_root().'/.kandoo-demo');
+    } elseif ($config['faraz_sms']['enabled'] ?? false) { $adapter = new FarazAdapter($config['faraz_sms']); }
+    else { throw new RuntimeException('SMS disabled'); }
+    $service = new AnnouncementService($db, $adapter, $clock);
     if ($argv[1] === 'send') { $status = $service->send($argv[2], $argv[3], $argv[4]); }
     elseif ($argv[1] === 'confirm') { $status = $service->confirmDelivery($argv[2]); }
     else {

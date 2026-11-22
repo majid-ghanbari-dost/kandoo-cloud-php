@@ -11,7 +11,7 @@ use Kandoo\Cloud\Store\StoreGateway;
 /** Administration is opt-in and separately authenticated on every page request. */
 final class AdminService
 {
-    public function __construct(private array $config, private StoreGateway $gateway, private ?\Closure $resetBudget = null) {}
+    public function __construct(private array $config, private StoreGateway $gateway, private ?\Closure $resetBudget = null, private ?\Closure $demoOutbox = null) {}
 
     public function handle(Request $request): Response
     {
@@ -53,9 +53,18 @@ final class AdminService
         ];
         if ($this->resetBudget !== null) {
             $csrf = \Kandoo\Cloud\Customer\OtpSecrets::sessionToken();
-            $headers['Set-Cookie'] = 'kandoo_admin_csrf='.$csrf.'; Path=/admin; Secure; HttpOnly; SameSite=Strict';
+            $headers['Set-Cookie'] = 'kandoo_admin_csrf='.$csrf.'; Path=/admin; '.(($this->config['env'] ?? '') === 'demo' ? '' : 'Secure; ').'HttpOnly; SameSite=Strict';
             $form = '<form method="post" action="/admin"><input type="hidden" name="csrf" value="'.$csrf.'"><label>شماره موبایل <input name="phone" required></label><button>بازنشانی بودجه کد</button></form>';
         }
-        return Response::html(200, '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>مدیریت فاکتور دیجیتال کندو</title></head><body><h1>مدیریت فاکتور دیجیتال کندو</h1><p>صفحهٔ مدیریت فعال است.</p>'.$form.'</body></html>', $headers);
+        $messages = '';
+        if ($this->demoOutbox !== null) {
+            $messages = '<section><h2>صندوق پیام دمو (ارسال واقعی نشده)</h2><ul>';
+            foreach (($this->demoOutbox)() as $message) {
+                $escape = static fn ($v): string => htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+                $messages .= '<li><bdi>'.$escape($message['phone']).'</bdi> — '.$escape($message['body']).'</li>';
+            }
+            $messages .= '</ul></section>';
+        }
+        return Response::html(200, '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>مدیریت فاکتور دیجیتال کندو</title></head><body><h1>مدیریت فاکتور دیجیتال کندو</h1><p>صفحهٔ مدیریت فعال است.</p>'.$form.$messages.'</body></html>', $headers);
     }
 }
