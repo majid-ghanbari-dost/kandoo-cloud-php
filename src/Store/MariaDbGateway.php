@@ -40,17 +40,19 @@ final class MariaDbGateway implements HarnessGateway
 
     public function findDevice(string $deviceId): ?array
     {
-        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE device_id = ?');
+        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified, revoked_at, revoked_reason FROM cloud_replication_devices WHERE device_id = ?');
         $stmt->execute([$deviceId]);
         $row = $stmt->fetch();
         if ($row === false) { return null; }
         $row['verified'] = (bool) $row['verified'];
+        $row['revoked_at'] = $row['revoked_at'] === null ? null : (string) $row['revoked_at'];
+        $row['revoked_reason'] = $row['revoked_reason'] === null ? null : (string) $row['revoked_reason'];
         return $row;
     }
 
     public function findDeviceByStoreAndSecretHash(string $storeId, string $secretHash): ?array
     {
-        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE store_id = ? AND secret_sha256 = ? LIMIT 2');
+        $stmt = $this->pdo()->prepare('SELECT device_id, store_id, secret_sha256, registered_at, last_authenticated_at, verified FROM cloud_replication_devices WHERE store_id = ? AND secret_sha256 = ? AND revoked_at IS NULL LIMIT 2');
         $stmt->execute([$storeId, $secretHash]);
         $rows = $stmt->fetchAll();
         if (count($rows) !== 1) { return null; }
@@ -349,13 +351,148 @@ final class MariaDbGateway implements HarnessGateway
         }
     }
 
+    // ── administration v2 (ORDER 16 P-32) ──────────────────────────────────────
+
+    public function listStores(): array
+    {
+        $rows = $this->pdo()->query(
+            'SELECT store_id, active_writer_device_id, active_writer_epoch, accepted_through_seq,
+                    entry_count, throttled
+             FROM cloud_stores ORDER BY store_id ASC'
+        )->fetchAll();
+        $stores = [];
+        foreach ($rows as $row) {
+            $stores[] = [
+                'store_id' => (string) $row['store_id'],
+                'active_writer_device_id' => (string) $row['active_writer_device_id'],
+                'active_writer_epoch' => (int) $row['active_writer_epoch'],
+                'accepted_through_seq' => (int) $row['accepted_through_seq'],
+                'entry_count' => (int) $row['entry_count'],
+                'throttled' => (bool) $row['throttled'],
+            ];
+        }
+        return $stores;
+    }
+
+    public function listDevices(): array
+    {
+        $rows = $this->pdo()->query(
+            'SELECT device_id, store_id, registered_at, last_authenticated_at, verified, revoked_at, revoked_reason
+             FROM cloud_replication_devices ORDER BY registered_at ASC, device_id ASC'
+        )->fetchAll();
+        $devices = [];
+        foreach ($rows as $row) {
+            $devices[] = [
+                'device_id' => (string) $row['device_id'],
+                'store_id' => (string) $row['store_id'],
+                'registered_at' => (string) $row['registered_at'],
+                'last_authenticated_at' => $row['last_authenticated_at'] === null ? null : (string) $row['last_authenticated_at'],
+                'verified' => (bool) $row['verified'],
+                'revoked_at' => $row['revoked_at'] === null ? null : (string) $row['revoked_at'],
+                'revoked_reason' => $row['revoked_reason'] === null ? null : (string) $row['revoked_reason'],
+            ];
+        }
+        return $devices;
+    }
+
+    public function revokeDevice(string $deviceId, string $reason, string $at): bool
+    {
+        // Revocation and its audit entry must commit or roll back together.
+        $pdo = $this->pdo();
+        if ($pdo->inTransaction()) { throw new \LogicException('Device revocation needs its own transaction.'); }
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare('UPDATE cloud_replication_devices SET revoked_at = ?, revoked_reason = ? WHERE device_id = ? AND revoked_at IS NULL');
+            $stmt->execute([$at, $reason, $deviceId]);
+            if ($stmt->rowCount() !== 1) {
+                $pdo->rollBack();
+                return false;
+            }
+            $event = $pdo->prepare('INSERT INTO cloud_admin_events (event_type, occurred_at, detail) VALUES (?, ?, ?)');
+            $event->execute(['device_revoked', $at, $deviceId]);
+            $pdo->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    public function smsDeliveryStatistics(): array
+    {
+        $byState = [];
+        $total = 0;
+        foreach ($this->pdo()->query('SELECT state, COUNT(*) AS c FROM cloud_sms_delivery_requests GROUP BY state')->fetchAll() as $row) {
+            $byState[(string) $row['state']] = (int) $row['c'];
+            $total += (int) $row['c'];
+        }
+        return ['total' => $total, 'by_state' => $byState];
+    }
+
+    public function smsCostLog(int $limit): array
+    {
+        $limit = max(1, min(500, $limit));
+        $stmt = $this->pdo()->prepare(
+            'SELECT entry_id, request_id, store_id, pattern, units, unit_cost, currency, cost_date, created_at
+             FROM cloud_sms_cost_log ORDER BY entry_id DESC LIMIT ' . (int) $limit
+        );
+        $stmt->execute();
+        $entries = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $entries[] = [
+                'entry_id' => (int) $row['entry_id'],
+                'request_id' => $row['request_id'] === null ? null : (string) $row['request_id'],
+                'store_id' => (string) $row['store_id'],
+                'pattern' => (string) $row['pattern'],
+                'units' => (int) $row['units'],
+                'unit_cost' => (string) $row['unit_cost'],
+                'currency' => (string) $row['currency'],
+                'cost_date' => (string) $row['cost_date'],
+                'created_at' => (int) $row['created_at'],
+            ];
+        }
+        return $entries;
+    }
+
+    public function smsCostDailyTotals(int $days): array
+    {
+        $days = max(1, min(366, $days));
+        $rows = $this->pdo()->query(
+            'SELECT cost_date, SUM(units) AS units, SUM(units * unit_cost) AS cost
+             FROM cloud_sms_cost_log GROUP BY cost_date ORDER BY cost_date DESC LIMIT ' . (int) $days
+        )->fetchAll();
+        $totals = [];
+        foreach ($rows as $row) {
+            $totals[] = ['cost_date' => (string) $row['cost_date'], 'units' => (int) $row['units'], 'cost' => (string) $row['cost']];
+        }
+        return $totals;
+    }
+
+    public function insertSmsCostEntry(array $row): void
+    {
+        $stmt = $this->pdo()->prepare(
+            'INSERT INTO cloud_sms_cost_log (request_id, store_id, pattern, units, unit_cost, currency, cost_date, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $row['request_id'] ?? null,
+            (string) $row['store_id'],
+            (string) $row['pattern'],
+            (int) $row['units'],
+            (string) $row['unit_cost'],
+            (string) $row['currency'],
+            (string) $row['cost_date'],
+            (int) $row['created_at'],
+        ]);
+    }
+
     // ── test-harness surface (HarnessGateway; FAKE fixtures only) ─────────────
 
     public function reset(): void
     {
         $pdo = $this->pdo();
         $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
-        foreach (['public_invoices', 'cloud_entries', 'cloud_batches', 'cloud_stores', 'public_rate_buckets', 'ingest_rate_buckets'] as $table) {
+        foreach (['public_invoices', 'cloud_entries', 'cloud_batches', 'cloud_stores', 'public_rate_buckets', 'ingest_rate_buckets', 'cloud_sms_cost_log'] as $table) {
             $pdo->exec("TRUNCATE TABLE $table");
         }
         $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
