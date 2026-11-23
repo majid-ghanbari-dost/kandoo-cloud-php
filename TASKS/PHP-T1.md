@@ -3,7 +3,7 @@
 **Lane:** PHP (`majid-ghanbari-dost/kandoo-cloud-php`) — **Posted by:** exec-manager (2026-11-23, Asia/Tehran)
 **How to report:** post your completion report as a comment on PR #3 itself and link it under this file (reply comment or new issue referencing `PHP-T1`). PM is the trigger and the only merger.
 
-**Status:** IN PROGRESS — ORDER 16 scope incomplete; PR remains draft pending completion and green checks.
+**Status:** IN PROGRESS — ORDER 16 scope incomplete; PR remains draft pending completion. [Progress report](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/pull/3#issuecomment-7100051575).
 
 ## Context (verified 2026-11-23)
 - PR #3 "ORDER 16 PHP consolidated work — draft" is **open in draft**, head `arena/f729618f-kandoo-cloud-php` @ `8a693b3`.
