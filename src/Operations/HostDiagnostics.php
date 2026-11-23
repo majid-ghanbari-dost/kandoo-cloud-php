@@ -52,13 +52,14 @@ final class HostDiagnostics
         return $result;
     }
 
-    /** TLS handshake only: does not submit a message or provider credential. */
+    /** HTTPS HEAD only: no message, provider credential, or redirect following. */
     public static function farazTls(): bool
     {
-        $ctx=stream_context_create(['ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'peer_name'=>'api.iranpayamak.com','SNI_enabled'=>true]]);
-        $socket=@stream_socket_client('tls://api.iranpayamak.com:443', $errno, $error, 8, STREAM_CLIENT_CONNECT, $ctx);
-        if (!is_resource($socket)) { return false; }
-        fclose($socket); return true;
+        $ctx=stream_context_create(['http'=>['method'=>'HEAD','timeout'=>8,'follow_location'=>0,'ignore_errors'=>true],
+            'ssl'=>['verify_peer'=>true,'verify_peer_name'=>true]]);
+        $response=@file_get_contents('https://api.iranpayamak.com/', false, $ctx);
+        return $response !== false && isset($http_response_header[0])
+            && preg_match('#^HTTP/\S+ [1-5][0-9]{2}(?:\s|$)#', $http_response_header[0]) === 1;
     }
 
     /** Fixed TLS echo service: only the host's IP is disclosed; never sends secrets. */

@@ -10,6 +10,21 @@ use Kandoo\Cloud\Tests\Support\DbTestCase;
 
 final class HostDiagnosticsDatabaseTest extends DbTestCase
 {
+    public function testCliRejectsBadKeyWithoutStartingDiagnostics(): void
+    {
+        $pipes=[];
+        $process=proc_open([PHP_BINARY, dirname(__DIR__,2).'/bin/host-diagnostics.php'],
+            [0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']], $pipes, null,
+            ['KANDOO_HOST_DIAGNOSTICS_KEY_SHA256'=>hash('sha256',str_repeat('a',64))]);
+        $this->assertIsResource($process);
+        fwrite($pipes[0],str_repeat('b',64)."\n"); fclose($pipes[0]);
+        $stdout=stream_get_contents($pipes[1]); fclose($pipes[1]);
+        $stderr=stream_get_contents($pipes[2]); fclose($pipes[2]);
+        $this->assertSame(1,proc_close($process));
+        $this->assertSame('',$stdout);
+        $this->assertSame("Diagnostics unavailable.\n",$stderr);
+    }
+
     public function testSecretAndSyntheticReadOnlyDiagnostics(): void
     {
         $key=str_repeat('a',64); $hash=hash('sha256',$key);
