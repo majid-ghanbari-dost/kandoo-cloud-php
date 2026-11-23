@@ -4,7 +4,7 @@ This document is maintained under standing order SO-01.
 
 ## PM-14 / PM-15 — 2026-11-22
 
-PM accepted option (a): PR #3 keeps the O15 handoff fix and six acceptance evidence reports, no cleanup. C# review on `arena/4bb6cd51-kandoo` was read at `1127edb33c595f706144da04cf3c676116355e41`: `docs/reports/ORDER-16-C-92.md` reports access denied / vectors not reviewed, not an approval. P-31 stays PENDING-CROSS-LANE; coordinate PHP repo read access through manager, do not claim acceptance. Work order P-30, then P-33, P-34, P-32; finished+green tags use exact case `o16-P-30` etc. P-30 in progress: DB-backed successful-cron heartbeat and CI smoke being added; protected self-test, outbound IP, backup/restore still pending.
+PM accepted option (a): PR #3 keeps the O15 handoff fix and six acceptance evidence reports, no cleanup. C# review on `arena/4bb6cd51-kandoo` was read at `1127edb33c595f706144da04cf3c676116355e41`: `docs/reports/ORDER-16-C-92.md` reports access denied / vectors not reviewed, not an approval. P-31 stays PENDING-CROSS-LANE; coordinate PHP repo read access through manager, do not claim acceptance. Work order P-30, then P-33, P-34, P-32; finished+green tags use exact case `o16-P-30` etc. P-30 in progress: DB-backed successful-cron heartbeat commit `6681d79fa93fea83fb3287738f611b91b06ef8ab`, CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45120898178 green PHP 8.1/8.5 MariaDB, cron smoke and suite, with artifacts; protected self-test, outbound IP, backup/restore still pending.
 
 ## M-003 baseline integration — 2026-11-22
 
