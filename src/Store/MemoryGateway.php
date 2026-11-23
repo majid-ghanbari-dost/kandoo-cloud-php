@@ -17,7 +17,7 @@ namespace Kandoo\Cloud\Store;
 final class MemoryGateway implements HarnessGateway
 {
     private bool $adminEnabled = false;
-    /** @var list<array{event_type: string, occurred_at: string}> */
+    /** @var list<array{event_type: string, occurred_at: string, detail: ?string}> */
     private array $adminEvents = [];
 
     public function isAdminEnabled(): bool { return $this->adminEnabled; }
@@ -25,7 +25,7 @@ final class MemoryGateway implements HarnessGateway
     public function setAdminEnabled(bool $enabled, string $at): void
     {
         if ($this->adminEnabled !== $enabled) {
-            $this->adminEvents[] = ['event_type' => $enabled ? 'enabled' : 'disabled', 'occurred_at' => $at];
+            $this->adminEvents[] = ['event_type' => $enabled ? 'enabled' : 'disabled', 'occurred_at' => $at, 'detail' => null];
             $this->adminEnabled = $enabled;
         }
     }
@@ -42,7 +42,8 @@ final class MemoryGateway implements HarnessGateway
         }
         $this->devices[$deviceId] = ['device_id' => $deviceId, 'store_id' => $storeId,
             'secret_sha256' => $secretHash, 'registered_at' => $registeredAt,
-            'last_authenticated_at' => null, 'verified' => false];
+            'last_authenticated_at' => null, 'verified' => false,
+            'revoked_at' => null, 'revoked_reason' => null];
     }
 
     public function findDevice(string $deviceId): ?array
@@ -59,7 +60,7 @@ final class MemoryGateway implements HarnessGateway
                 $found = $device;
             }
         }
-        return $found;
+        return ($found !== null && $found['revoked_at'] === null) ? $found : null;
     }
 
     public function touchDeviceAuthenticated(string $deviceId, string $at): void
@@ -68,6 +69,36 @@ final class MemoryGateway implements HarnessGateway
             $this->devices[$deviceId]['verified'] = true;
             $this->devices[$deviceId]['last_authenticated_at'] = $at;
         }
+    }
+
+    // ── administration v2 (ORDER 16 P-32) ─────────────────────────────────────
+
+    public function revokeDevice(string $deviceId, string $reason, string $at): bool
+    {
+        if (!isset($this->devices[$deviceId]) || $this->devices[$deviceId]['revoked_at'] !== null) {
+            return false;
+        }
+        $this->devices[$deviceId]['revoked_at'] = $at;
+        $this->devices[$deviceId]['revoked_reason'] = $reason;
+        $this->adminEvents[] = ['event_type' => 'device_revoked', 'occurred_at' => $at, 'detail' => $deviceId];
+        return true;
+    }
+
+    public function listStores(): array
+    {
+        return array_values($this->stores);
+    }
+
+    public function listDevices(): array
+    {
+        $rows = [];
+        foreach ($this->devices as $device) {
+            $rows[] = ['device_id' => $device['device_id'], 'store_id' => $device['store_id'],
+                'registered_at' => $device['registered_at'], 'last_authenticated_at' => $device['last_authenticated_at'],
+                'verified' => $device['verified'], 'revoked_at' => $device['revoked_at'],
+                'revoked_reason' => $device['revoked_reason']];
+        }
+        return $rows;
     }
 
     /** @var array<string, array<string, mixed>> store_id → row */
@@ -80,6 +111,10 @@ final class MemoryGateway implements HarnessGateway
     private array $projections = [];
     /** @var array<string, array<string, array{window_start: int, hits: int}>> scope → key → bucket */
     private array $buckets = ['public' => [], 'ingest' => []];
+    /** @var list<string> synthetic delivery-request states (FAKE) */
+    private array $smsRequestStates = [];
+    /** @var list<array<string, mixed>> */
+    private array $smsCostEntries = [];
 
     private int $txDepth = 0;
     /** @var array<string, mixed>|null */
@@ -131,6 +166,8 @@ final class MemoryGateway implements HarnessGateway
         $this->batches = [];
         $this->projections = [];
         $this->buckets = ['public' => [], 'ingest' => []];
+        $this->smsRequestStates = [];
+        $this->smsCostEntries = [];
         $this->txDepth = 0;
         $this->snapshot = null;
     }
@@ -373,5 +410,64 @@ final class MemoryGateway implements HarnessGateway
                 }
             }
         }
+    }
+
+    // ── SMS statistics and cost log (ORDER 16 P-32) ────────────────────────────
+
+    /** Seeds synthetic delivery-request states for the FAKE in-memory gateway. @param list<string> $states */
+    public function seedSmsDeliveryStates(array $states): void
+    {
+        foreach ($states as $state) {
+            $this->smsRequestStates[] = (string) $state;
+        }
+    }
+
+    public function smsDeliveryStatistics(): array
+    {
+        $byState = [];
+        foreach ($this->smsRequestStates as $state) {
+            $byState[$state] = ($byState[$state] ?? 0) + 1;
+        }
+        return ['total' => count($this->smsRequestStates), 'by_state' => $byState];
+    }
+
+    public function insertSmsCostEntry(array $row): void
+    {
+        $this->smsCostEntries[] = [
+            'entry_id' => count($this->smsCostEntries) + 1,
+            'request_id' => $row['request_id'] ?? null,
+            'store_id' => (string) $row['store_id'],
+            'pattern' => (string) $row['pattern'],
+            'units' => (int) $row['units'],
+            'unit_cost' => (string) $row['unit_cost'],
+            'currency' => (string) $row['currency'],
+            'cost_date' => (string) $row['cost_date'],
+            'created_at' => (int) $row['created_at'],
+        ];
+    }
+
+    public function smsCostLog(int $limit): array
+    {
+        return array_slice(array_reverse($this->smsCostEntries), 0, max(1, min(500, $limit)));
+    }
+
+    public function smsCostDailyTotals(int $days): array
+    {
+        $sums = [];
+        foreach ($this->smsCostEntries as $entry) {
+            $date = $entry['cost_date'];
+            if (!isset($sums[$date])) {
+                $sums[$date] = ['cost_date' => $date, 'units' => 0, 'cost' => 0.0];
+            }
+            $sums[$date]['units'] += $entry['units'];
+            $sums[$date]['cost'] += $entry['units'] * (float) $entry['unit_cost'];
+        }
+        $rows = array_values($sums);
+        usort($rows, static fn (array $a, array $b): int => $b['cost_date'] <=> $a['cost_date']);
+        foreach ($rows as &$row) {
+            $row['cost'] = sprintf('%.6F', $row['cost']);
+        }
+        unset($row);
+        return array_slice($rows, 0, max(1, min(366, $days)));
     }
 }
