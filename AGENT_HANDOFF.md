@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T1 — 2026-11-23, in progress
+
+Task `TASKS/PHP-T1.md` asks to finish ORDER 16, green CI, self-review, ready PR #3 and report; do not merge or edit `.github/workflows/`. Merged latest origin/main (task file) into branch without rebase. Later P-32 commits `823f44f`, `1945003`, `8a693b3` added initial admin v2; CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45129326294 failed on missing migration `0011` in test list. Fix in progress. Review found revoked devices could still authenticate via legacy pair; fix and tests for both credential types in progress. SMS cost table is not connected to SMS sending, and admin brute-force mitigation still needed. P-30 protected self-test/backup/restore, P-33 real cost registration/provider approval, P-34 host-like load and P-31 Android E2E remain incomplete; do not claim completion or mark task DONE. PM-13 in C# `docs/reports/ORDER-16-C-92.md` on `arena/4bb6cd51-kandoo` ACCEPTS shared P-31 vectors, superseding earlier access denied and lifting review dependency; Android E2E not yet proven, final contract PM-controlled. No O16 tags until finished+green. PM-14 preserved O15 reports in PR.
+
 ## PM-14 / PM-15 — 2026-11-22
 
 PM accepted option (a): PR #3 keeps the O15 handoff fix and six acceptance evidence reports, no cleanup. C# review on `arena/4bb6cd51-kandoo` was read at `1127edb33c595f706144da04cf3c676116355e41`: `docs/reports/ORDER-16-C-92.md` reports access denied / vectors not reviewed, not an approval. P-31 stays PENDING-CROSS-LANE; coordinate PHP repo read access through manager, do not claim acceptance. Work order P-30, then P-33, P-34, P-32; finished+green tags use exact case `o16-P-30` etc. P-30 in progress: DB-backed successful-cron heartbeat commit `6681d79fa93fea83fb3287738f611b91b06ef8ab`, CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45120898178 green PHP 8.1/8.5 MariaDB, cron smoke and suite, with artifacts; protected self-test, outbound IP, backup/restore still pending.

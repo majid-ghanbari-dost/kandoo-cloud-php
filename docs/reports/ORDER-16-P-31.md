@@ -17,3 +17,5 @@ CI: PHP 8.1.34 و 8.5.13، MariaDB 10.6، suite بدون skip؛ artifactهای `
 حکم M-003: P-31 تا ثبت بازبینی C# در `docs/reports/ORDER-16-C-92.md` مخزن C# در وضعیت **PENDING-CROSS-LANE** می‌ماند؛ در بررسی فعلی آن مسیر در main پاسخ 404 داد. ادغام baseline در `91e2d2954b779d72090fae1aaeece06e331f80a6` انجام شد؛ [CI ادغام 45000605111](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45000605111) سبز است، ولی جایگزین بازبینی و آزمون بین‌تیمی نیست.
 
 بررسی شاخه C# `arena/4bb6cd51-kandoo` در SHA `1127edb33c595f706144da04cf3c676116355e41`: گزارش C-92 موجود است ولی verdict آن **access denied** و بردارها بازبینی نشده‌اند؛ پذیرش نیست. نیاز به دسترسی خواندن مخزن PHP برای ایجنت C# به هماهنگی مدیر سپرده می‌شود. PENDING-CROSS-LANE حفظ شد.
+
+حکم PM-13 مورخ 2026-11-23 در گزارش C-92 شاخه `arena/4bb6cd51-kandoo`: مدیر پس از بازبینی مستقیم کپی read-only بردارها را ACCEPT کرد و وابستگی بازبینی PENDING-CROSS-LANE را رفع کرد؛ تثبیت قرارداد نهایی در اختیار PM است. این حکم جایگزین آزمون سرتاسری اندروید با API واقعی نیست؛ آن آزمون همچنان PENDING-CROSS-LANE مطابق برنامه بالاست.
