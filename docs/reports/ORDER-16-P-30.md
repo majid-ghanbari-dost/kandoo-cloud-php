@@ -5,3 +5,5 @@
 | P-30 | `arena/f729618f-kandoo-cloud-php` | `bdee65fdd8f443ce3af8352161c62b174dcfb759` | [44887759003](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/44887759003) سبز | PARTIAL | `docs/SHARED-HOST-P30-FA.md` |
 
 چک‌لیست بدون دستور مخرب تهیه شد؛ self-test محافظت‌شده با secret، cron heartbeat، backup جداگانه و restore آزمایش‌شده هنوز پیاده‌سازی/تأیید نشده‌اند.
+
+پیشرفت: heartbeat موفق cron در MariaDB و آزمون‌های وضعیت و smoke پیاده‌سازی شد؛ پس از prune و cleanup موفق ثبت می‌شود. گزارش CI این گام پس از بررسی اجرا ثبت خواهد شد. self-test محافظت‌شده، IP خروجی و backup/restore همچنان باقی‌اند؛ PARTIAL و بدون تگ.
