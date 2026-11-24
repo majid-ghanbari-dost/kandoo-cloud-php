@@ -135,7 +135,7 @@ final class AdminService
         }
         $body .= '</ul></section>';
 
-        $body .= '<section><h2>گزارش هزینهٔ پیامک</h2>';
+        $body .= '<section><h2>گزارش هزینهٔ پیامک (برآورد رزرو، نه قبض یا تحویل)</h2>';
         $totals = $this->gateway->smsCostDailyTotals(30);
         if ($totals === []) {
             $body .= '<p>هنوز هزینه‌ای ثبت نشده است.</p>';

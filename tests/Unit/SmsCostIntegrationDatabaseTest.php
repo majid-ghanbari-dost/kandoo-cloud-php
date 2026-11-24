@@ -32,11 +32,19 @@ final class SmsCostIntegrationDatabaseTest extends DbTestCase
             $auth=new CustomerAuth($settings,$db,$clock,$fake,$cost);
             $this->assertSame('OTP_SENT',$auth->issue($phone,'TEST-cost-idem',str_repeat('Q',43))['status']);
             $this->assertSame('DUPLICATE',$auth->issue($phone,'TEST-cost-idem',str_repeat('Q',43))['status']);
+            $fail=new class implements \Kandoo\Cloud\Customer\OtpTransport {
+                public int $calls=0;
+                public function sendCode(string $phone, string $code): bool { $this->calls++; return false; }
+            };
+            $failedAuth=new CustomerAuth($settings,$db,$clock,$fail,$cost);
+            $this->assertSame('INCOMPLETE',$failedAuth->issue($phone,'TEST-cost-uncertain',str_repeat('Q',43))['status']);
+            $this->assertSame('INCOMPLETE',$failedAuth->issue($phone,'TEST-cost-uncertain',str_repeat('Q',43))['status']);
+            $this->assertSame(1,$fail->calls);
             $rows=$pdo->query('SELECT pattern,unit_cost,currency,store_id FROM cloud_sms_cost_log ORDER BY entry_id')->fetchAll();
-            $this->assertCount(2,$rows); $this->assertSame('notification',$rows[0]['pattern']);
+            $this->assertCount(3,$rows); $this->assertSame('notification',$rows[0]['pattern']);
             $this->assertSame('1200.000000',$rows[0]['unit_cost']); $this->assertSame('otp',$rows[1]['pattern']);
             $this->assertSame('700.000000',$rows[1]['unit_cost']); $this->assertSame('IRR',$rows[1]['currency']);
-            $this->assertSame($store,$rows[1]['store_id']); $this->assertCount(2,$fake->dryRequests());
+            $this->assertSame($store,$rows[1]['store_id']); $this->assertSame('otp',$rows[2]['pattern']); $this->assertCount(2,$fake->dryRequests());
         } finally {
             foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_sms_delivery_requests','cloud_customer_phones','cloud_otp_idempotency_locks'] as $t) { $pdo->exec('DELETE FROM '.$t); }
             $g->reset();
