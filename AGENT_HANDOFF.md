@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T2 — 2026-11-24, in progress
+
+Read `TASKS/PHP-T2.md` on main, and C# main M-007/M-008. M-007 removes four real-host/provider items from lane DoD, recorded exactly as PO-OWN-1..4 at `docs/reports/ORDER-16-PO-CHECKLIST.md`; no purchases before launch readiness. Remaining PR #3 locally-provable MUST: P-30 runbook/secret host self-test/XAMPP-like local dry-run and tested separate backup/restore; P-33 paste-ready patterns plus SMS cost integration against stub; local security review; P-31 PM-13 vector ACCEPT closes PHP-side cross-lane review, actual Android E2E is C#/PO. Keep PR #3 draft, PM-14 retains O15 evidence. After local MUST green and reported, ORDER 17 P-32/P-34/P-36; do not start P-36 before then. Read C# `docs/design/README.md` and `Customer-Invoice-v2.dc.html` before P-36. Never merge. Workflow changes must be disclosed in PR first line and merged only by PO (PR already contains earlier P-30 workflow change). No real data. Tags `o16-<task>` or `o17-<task>` only finished+green.
+
 ## PHP-T1 continuation — diagnostics partial
 
 P-30 CLI-only secret-gated diagnostics added at `fe0d28e70e90806ed23fd94c0745b92a5e4f4255`, [push CI 45193950783](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45193950783), [PR CI 45193964983](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45193964983) green, PHP 8.1/8.5 MariaDB, fake network probes and bad-key CLI test. Tests do not contact external providers. Live host diagnostics remain unverified. Egress uses HTTPS api.ipify.org and necessarily reveals public IP to it; cannot guarantee same NAT route as provider; explicitly documented. Separate nightly backup and tested isolated restore remain missing, as do SMS cost integration, security work, target-like load and Android end-to-end. Keep PR draft and PHP-T1 IN PROGRESS. All progress reporting on GitHub.

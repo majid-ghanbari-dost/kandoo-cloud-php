@@ -28,4 +28,4 @@ The following are REMOVED from the lane's definition of done. They are PO items,
 - Tags: `o16-<task>` for ORDER 16 items, `o17-<task>` for ORDER 17; never move/delete existing tags.
 
 ---
-## Status: OPEN — PO-OWN-1..4 recording + PR #3 locally-provable MUST first
+## Status: IN PROGRESS — PO-OWN-1..4 recorded; PR #3 locally-provable MUST in progress; ORDER 17 not started
