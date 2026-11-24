@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T2 current evidence
+
+P-31 PHP-side vector review accepted per PM-13, tag `o16-P-31` -> `d9bd5d177933052122771e9b40639241690f1673`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45345882858 / PR CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45345889068 green. Android E2E is C#/PO, not proven. P-33 local pattern kit and configurable, default-off, transactionally reserved SMS cost *estimates* for notification and OTP with synthetic dry transport, uncertain retry/idempotency tests: tag `o16-P-33` -> `7f977ace29afa7f785c6e2c85a207461858f577f`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45346361644 green. Not actual billing or delivery; PO-OWN-2/3. No O16 tag workflow exists; no tag CI claimed. P-30 backup/restore and XAMPP-like local dry-run and local security review still incomplete; ORDER 17 must not start until local MUST green/reported. Keep PR #3 draft, no merge.
+
 ## PHP-T2 — 2026-11-24, in progress
 
 Read `TASKS/PHP-T2.md` on main, and C# main M-007/M-008. M-007 removes four real-host/provider items from lane DoD, recorded exactly as PO-OWN-1..4 at `docs/reports/ORDER-16-PO-CHECKLIST.md`; no purchases before launch readiness. Remaining PR #3 locally-provable MUST: P-30 runbook/secret host self-test/XAMPP-like local dry-run and tested separate backup/restore; P-33 paste-ready patterns plus SMS cost integration against stub; local security review; P-31 PM-13 vector ACCEPT closes PHP-side cross-lane review, actual Android E2E is C#/PO. Keep PR #3 draft, PM-14 retains O15 evidence. After local MUST green and reported, ORDER 17 P-32/P-34/P-36; do not start P-36 before then. Read C# `docs/design/README.md` and `Customer-Invoice-v2.dc.html` before P-36. Never merge. Workflow changes must be disclosed in PR first line and merged only by PO (PR already contains earlier P-30 workflow change). No real data. Tags `o16-<task>` or `o17-<task>` only finished+green.
