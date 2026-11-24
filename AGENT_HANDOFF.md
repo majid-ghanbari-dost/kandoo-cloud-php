@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## E-72 independent vote — PHP lane
+
+Explicit trigger requested an independent report, decision, new tag and handoff. Vote INCOMPATIBLE with current consumers, not rejection of the proposal: direct Python 1e620cc vector checked against C# consumer main `cb1730aa7e41768e3b431c7b4ead8968e3d92c9d` and PHP projection tests. C# report at 26d8806 incorrectly locates `image_sha256` and `template_library_id` at base_invoice root; both are allowed under provenance. Actual mismatches: quantity vs quantity_millis, DRAFT display_number/native vs null/unavailable; Cloud v1.1 rejects cheque and lacks projection for discount/walk-in. Static C# review only, no dotnet execution; single fixture PHP bytes match, not general parity. `docs/reports/E72-PHP-INDEPENDENT-VERDICT-FA.md`, decision in `docs/decisions-made.md`. Trigger mentions kandoo-store-app but this session is pinned to kandoo-cloud-php and its existing branch; no other repository or branch modified. PR #3 stays draft; P-30 remains open. Frozen contract preserved.
+
 ## E-72 store/API comparison trigger
 
 Python annotated tag `o16-E-72` object `462c08e03579318783e2ab8d0ebbbc67373e43b6` -> `f99ab20f0d39b5e4a293d1c3bce9413d9b77d791`; manifest contains one vector and tag bytes still match pinned 1505 / SHA `0885c7571fb3ccc781f1a73e5505cd94805b065fb13e93f35fa4feb12d061d36`. E-72 unit test for Cloud ingest/projection/public JSON passes at `9d7d1d18c77af32ff814edede7dd076a29232745`, CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45366035330 green. The store/API fixture uses MemoryGateway, not MariaDB on that specific scenario. Prior CI 45365823019 failed due to incorrect top-level invoice_id assertion; corrected to digital_invoice.invoice_id. No runtime or frozen contract changes. Report is `docs/reports/E72-PHP-CROSS-REVIEW.md`; new trigger says no parallel implementation. P-30 outstanding, PR #3 draft.
