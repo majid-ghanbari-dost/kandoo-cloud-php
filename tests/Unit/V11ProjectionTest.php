@@ -74,7 +74,8 @@ final class V11ProjectionTest extends TestCase
         $public=$kernel->handle(new Request('GET','/i/'.$row['public_token'],['accept'=>'application/json']));
         $this->assertSame(200,$public->status());
         $view=json_decode($public->body(),true,512,JSON_THROW_ON_ERROR);
-        $this->assertArrayHasKey('invoice_id',$view);
+        $this->assertArrayHasKey('digital_invoice',$view);
+        $this->assertSame($row['invoice_id'],$view['digital_invoice']['invoice_id']);
         $this->assertArrayNotHasKey('invoice_discount',$view);
         $this->assertArrayNotHasKey('walk_in_customer',$view);
     }
