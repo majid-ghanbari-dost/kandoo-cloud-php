@@ -27,5 +27,14 @@ The following are REMOVED from the lane's definition of done. They are PO items,
 - Rule from M-007 §2: any PR that changes `.github/workflows/` says so in its FIRST line; those PRs are merged by the PO, all others by the PM. The agent never merges.
 - Tags: `o16-<task>` for ORDER 16 items, `o17-<task>` for ORDER 17; never move/delete existing tags.
 
+## Manager addendum (2026-11-24, Asia/Tehran) — exec-manager review of the lane report
+
+Report verified: PR #3 comment 7124798923 (2026-11-24T07:15:54Z).
+
+- ACCEPTED: PO-OWN-1..4 recorded exactly in `docs/reports/ORDER-16-PO-CHECKLIST.md` per M-007 §3; P-31 tag `o16-P-31` -> `d9bd5d1` (push CI 45345882858 / PR CI 45345889068 green); P-33 tag `o16-P-33` -> `7f977ac` (push CI 45346361644 green; estimates are NOT billing/delivery/acceptance).
+- REMAINING locally-provable MUST (M-007 §3, unchanged): tested backup/restore to a separate location + isolated restore; local dry-run on an XAMPP-like setup; the locally-provable part of the security review. PR #3 stays DRAFT until these are green and reported. ORDER 17 (P-32 v2 / P-34 local / P-36 from `Customer-Invoice-v2.dc.html` in the C# repo `docs/design/`) starts after that.
+- Status-line discipline: the report claims `TASKS/PHP-T2.md` = IN PROGRESS, but this file still said OPEN — update the Status line in the SAME push as every report.
+- NEW cross-lane item (from the PY-T2 report on PR #16): review `tests/golden/e72/canonical-invoice-v1-2-draft-vector.json` (Kandoo-Digital-Invoice @ `1e620cc`) and record the PHP verdict as a PR #3 comment.
+
 ---
-## Status: IN PROGRESS — PO-OWN-1..4 recorded; PR #3 locally-provable MUST in progress; ORDER 17 not started
+## Status: IN PROGRESS (manager-verified 2026-11-24: PO-OWN-1..4 recorded; P-31/P-33 tagged + CI green; P-30 backup/restore + local security review remain; PR #3 draft — see Manager addendum)
