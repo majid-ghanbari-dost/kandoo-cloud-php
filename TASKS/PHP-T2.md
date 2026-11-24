@@ -37,4 +37,4 @@ Report verified: PR #3 comment 7124798923 (2026-11-24T07:15:54Z).
 - NEW cross-lane item (from the PY-T2 report on PR #16): review `tests/golden/e72/canonical-invoice-v1-2-draft-vector.json` (Kandoo-Digital-Invoice @ `1e620cc`) and record the PHP verdict as a PR #3 comment.
 
 ---
-## Status: IN PROGRESS — manager acceptance recorded; E-72 independent vote INCOMPATIBLE; fixture bytes match but consumer/API discrepancies documented; P-30 backup/restore, local dry-run and local security review remain; PR #3 draft
+## Status: IN PROGRESS — manager acceptance recorded; E-72 independent vote INCOMPATIBLE tagged o16-P-E72-review; fixture bytes match but consumer/API discrepancies documented; P-30 backup/restore, local dry-run and local security review remain; PR #3 draft
