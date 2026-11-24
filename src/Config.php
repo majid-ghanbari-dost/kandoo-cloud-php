@@ -212,6 +212,20 @@ final class Config
             $config['faraz_sms'] = $validatedSms;
         }
 
+        // Optional estimates only; no default invented price or provider billing claim.
+        $cost = $raw['sms_cost'] ?? ['enabled'=>false];
+        if (!is_array($cost) || !isset($cost['enabled']) || !is_bool($cost['enabled'])) {
+            throw new ConfigException('sms_cost.enabled must be boolean.');
+        }
+        $config['sms_cost'] = ['enabled'=>$cost['enabled']];
+        if ($cost['enabled']) {
+            foreach (['notification_rials','otp_rials'] as $name) {
+                $value=$cost[$name] ?? null;
+                if (!is_int($value) || $value < 0 || $value > 999999) { throw new ConfigException('Invalid SMS cost estimate.'); }
+                $config['sms_cost'][$name]=$value;
+            }
+        }
+
         $retention = $raw['retention'] ?? [];
         if (!is_array($retention)) { throw new ConfigException('retention must be an array.'); }
         $config['retention'] = [];

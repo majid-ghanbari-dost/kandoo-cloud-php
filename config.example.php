@@ -60,6 +60,9 @@ return [
     'retention' => ['otp_challenge_seconds'=>86400, 'expired_session_seconds'=>2592000,
         'idempotency_seconds'=>2592000, 'undeliverable_sms_seconds'=>7776000],
 
+    // Optional operator-configured estimates only; disabled means no invented cost.
+    'sms_cost' => ['enabled' => false],
+
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.
     'public_rate_limit_per_minute' => 60,
