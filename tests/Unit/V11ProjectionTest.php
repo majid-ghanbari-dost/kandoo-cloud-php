@@ -53,6 +53,29 @@ final class V11ProjectionTest extends TestCase
         }
     }
 
+    /** E-72 is a separate Python draft, not an approved Cloud v1.1 amendment. */
+    public function testE72FieldsDoNotSilentlyBecomeCloudV11Features(): void
+    {
+        $source=json_decode((string)file_get_contents(dirname(__DIR__,2).'/docs/vectors/e72/canonical-invoice-v1-2-draft-vector.json'),true,512,JSON_THROW_ON_ERROR);
+        $draft=$source['v1_2_draft_addendum'];
+        [$rejected,$gateway,,$store]=$this->runBatch(['invoice_schema_version'=>'1.1','payments'=>$draft['payments']]);
+        $this->assertSame(400,$rejected->status());
+        $this->assertSame('VALIDATION_ERROR',json_decode($rejected->body(),true)['code']);
+        $this->assertSame([],$gateway->projectionsOf($store));
+        // With a valid v1.1 payment, extra E-72 fields are not projected or exposed.
+        [$response,$gateway,$kernel,$store]=$this->runBatch([
+            'invoice_schema_version'=>'1.1', 'payments'=>[['type'=>'cash','amount'=>850]],
+            'invoice_discount'=>$draft['invoice_discount'], 'walk_in_customer'=>$draft['walk_in_customer'],
+        ]);
+        $this->assertSame(200,$response->status());
+        $row=$gateway->projectionsOf($store)[0];
+        $this->assertArrayNotHasKey('invoice_discount',$row);
+        $this->assertArrayNotHasKey('walk_in_customer',$row);
+        $view=json_decode($kernel->handle(new Request('GET','/i/'.$row['public_token'],['accept'=>'application/json']))->body(),true);
+        $this->assertArrayNotHasKey('invoice_discount',$view);
+        $this->assertArrayNotHasKey('walk_in_customer',$view);
+    }
+
     public function testInvalidFieldsAndMarkerReturnValidationErrorAndRollback(): void
     {
         $cases = [
