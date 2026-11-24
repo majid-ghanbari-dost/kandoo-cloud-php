@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T2 manager review and E-72 (2026-11-24)
+
+Merged manager `013e4f6f8a294a5dafa5c8f2fc862d39e4cbcc8d` into this branch, retaining manager addendum and updated task status. PO-OWN-1..4 and P-31/P-33 tags accepted. E-72 Python commit `1e620cc1f990bec51566b5e1af26dcec97f26fdb`: exact vector pinned `0885c7571fb3ccc781f1a73e5505cd94805b065fb13e93f35fa4feb12d061d36`, 1505 bytes, both Python schemas validated with jsonschema; PHP byte replay test added, CI pending. PHP review conditional on this fixture only; integration remains unapproved: `cheque` is not accepted by frozen Cloud v1.1, example IDs not UUIDs, U7 Cloud control/DEL escape profile differs from Python json.dumps. See `docs/reports/E72-PHP-CROSS-REVIEW.md`. Do not alter frozen Cloud or integrate runtime. Continue P-30 backup/restore, XAMPP-like dry-run, local security first; ORDER 17 later. PR #3 must stay draft; task Status line in same push as every report.
+
 ## PHP-T2 current evidence
 
 P-31 PHP-side vector review accepted per PM-13, tag `o16-P-31` -> `d9bd5d177933052122771e9b40639241690f1673`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45345882858 / PR CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45345889068 green. Android E2E is C#/PO, not proven. P-33 local pattern kit and configurable, default-off, transactionally reserved SMS cost *estimates* for notification and OTP with synthetic dry transport, uncertain retry/idempotency tests: tag `o16-P-33` -> `7f977ace29afa7f785c6e2c85a207461858f577f`; branch CI https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45346361644 green. Not actual billing or delivery; PO-OWN-2/3. No O16 tag workflow exists; no tag CI claimed. P-30 backup/restore and XAMPP-like local dry-run and local security review still incomplete; ORDER 17 must not start until local MUST green/reported. Keep PR #3 draft, no merge.
