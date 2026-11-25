@@ -192,6 +192,17 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $this->assertSame($expected,$actual,$label);
     }
 
+    public function testAdminRateBucketIsAtomicAndPrunableOnMariaDb(): void
+    {
+        $gateway=new MariaDbGateway($this->db());
+        $key=hash('sha256','TEST-admin-peer-'.bin2hex(random_bytes(16)));
+        $this->assertTrue($gateway->rateHit('admin',$key,1000,1));
+        $this->assertFalse($gateway->rateHit('admin',$key,1000,1));
+        $this->assertTrue($gateway->rateHit('admin',$key,1060,1));
+        $gateway->pruneRateBuckets(1120);
+        $this->assertSame(0,(int)$this->db()->pdo()->query("SELECT COUNT(*) FROM admin_rate_buckets WHERE window_start < 1120")->fetchColumn());
+    }
+
     public function testIpBucketIsAtomicAndIndependentByAction(): void
     {
         $gateway=new MariaDbGateway($this->db());

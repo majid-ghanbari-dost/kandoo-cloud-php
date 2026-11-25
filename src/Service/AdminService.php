@@ -18,7 +18,7 @@ use Kandoo\Cloud\Store\StoreGateway;
  */
 final class AdminService
 {
-    public function __construct(private array $config, private StoreGateway $gateway, private ?\Closure $resetBudget = null, private ?\Closure $demoOutbox = null) {}
+    public function __construct(private array $config, private StoreGateway $gateway, private ?\Closure $resetBudget = null, private ?\Closure $demoOutbox = null, private ?\Kandoo\Cloud\Support\Clock $clock = null) {}
 
     public function handle(Request $request): Response
     {
@@ -28,6 +28,13 @@ final class AdminService
         }
         if (!in_array($request->method(), ['GET', 'POST'], true)) {
             return Response::emptyBody(405, ['Allow' => 'GET, POST', 'Cache-Control' => 'no-store']);
+        }
+        // Count all enabled-admin requests before password verification, not proxy-supplied headers.
+        $now = $this->clock !== null ? $this->clock->nowUnix() : time();
+        $peer = $request->clientIp() !== '' ? $request->clientIp() : 'unknown';
+        $key = hash('sha256', "admin-peer\0".$peer);
+        if (!$this->gateway->rateHit('admin', $key, intdiv($now,60)*60, (int)($this->config['admin_rate_limit_per_minute'] ?? 10))) {
+            return Response::emptyBody(429, ['Cache-Control'=>'no-store', 'Retry-After'=>(string)max(1,60-($now%60))]);
         }
         $authorization = $request->header('authorization') ?? '';
         $decoded = preg_match('/^Basic\s+([^\s]+)$/i', $authorization, $m) === 1

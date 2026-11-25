@@ -72,7 +72,7 @@ final class Kernel
                     return (new Database($this->config))->pdo()->query('SELECT phone,kind,body,created_at FROM cloud_demo_sms_outbox ORDER BY created_at DESC,message_id DESC LIMIT 100')->fetchAll();
                 };
             }
-            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset, $outbox);
+            $service = new \Kandoo\Cloud\Service\AdminService($this->config, $this->gateway, $reset, $outbox, $this->clock);
             return $service->handle($request);
         }
 

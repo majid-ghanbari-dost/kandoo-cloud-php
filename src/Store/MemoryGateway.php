@@ -403,7 +403,7 @@ final class MemoryGateway implements HarnessGateway
 
     public function pruneRateBuckets(int $olderThanWindowStart): void
     {
-        foreach (['public', 'ingest', 'customer_issue', 'customer_verify'] as $scope) {
+        foreach (['public', 'ingest', 'customer_issue', 'customer_verify', 'admin'] as $scope) {
             foreach ($this->buckets[$scope] ?? [] as $key => $bucket) {
                 if ($bucket['window_start'] < $olderThanWindowStart) {
                     unset($this->buckets[$scope][$key]);

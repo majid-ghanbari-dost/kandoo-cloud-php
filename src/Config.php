@@ -121,6 +121,12 @@ final class Config
             $config[$name] = $value;
         }
 
+        $adminRate=$raw['admin_rate_limit_per_minute'] ?? 10;
+        if (!is_int($adminRate) || $adminRate < 1 || $adminRate > 1000) {
+            throw new ConfigException('admin_rate_limit_per_minute must be an integer between 1 and 1000.');
+        }
+        $config['admin_rate_limit_per_minute']=$adminRate;
+
         $gate = $raw['public_legal_copy_required'] ?? false;
         if (!is_bool($gate)) {
             throw new ConfigException('public_legal_copy_required must be a boolean (D14 gate, §6.5).');
