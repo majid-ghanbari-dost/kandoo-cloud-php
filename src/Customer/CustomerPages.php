@@ -67,10 +67,10 @@ final class CustomerPages
             $phone = $this->auth->phoneForToken($this->cookie($request, 'kandoo_session'));
             if ($phone === null) { return new Response(303, ['Location' => '/account/login', 'Cache-Control' => 'no-store']); }
             if ($path === '/account/invoices') {
-                $html = '<h1>فاکتورهای من</h1>';
+                $html = '';
                 $groups = [];
                 foreach ($this->auth->invoices($phone) as $row) { $groups[$row['store_id']][] = $row; }
-                if ($groups === []) { $html .= self::emptyState(); }
+                if ($groups === []) { $html .= self::emptyState(); } else { $html .= '<h1>فاکتورهای من</h1>'; }
                 foreach ($groups as $rows) {
                     $html .= '<section><h2>'.self::e((string)$rows[0]['store_name']).'</h2><ul>';
                     foreach ($rows as $row) {
@@ -85,7 +85,7 @@ final class CustomerPages
                     $headers['Set-Cookie'] = 'kandoo_csrf='.$csrf.'; Path=/account; Max-Age='.($this->config['device_ttl_seconds'] ?? 2592000).$this->cookieSecurity().' HttpOnly; SameSite=Strict';
                 }
                 $html .= '<form method="post" action="/account/logout"><input type="hidden" name="csrf" value="'.self::e($csrf).'"><button>خروج از این دستگاه</button></form>';
-                return $this->page($html, 200, $headers);
+                return $this->page($html, 200, $headers, $groups === [] ? 'empty' : '');
             }
             $row = $this->auth->invoice($phone, $m[1], $m[2]);
             if ($row === null) { return Response::emptyBody(404, ['Cache-Control' => 'no-store']); }
@@ -182,12 +182,14 @@ final class CustomerPages
         $content = '<section class="locked-state"><h1>ورود نیاز به پشتیبانی دارد</h1><p>درخواست قفل شده یا سهمیه کد تمام شده است. برای ادامه با پشتیبانی تلگرام تماس بگیرید.</p>';
         if (is_string($url)) { $content .= '<p><a rel="noopener noreferrer" href="'.self::e($url).'">تلگرام</a></p>'; }
         $content .= '</section>';
-        return $this->page($content, 429);
+        return $this->page($content, 429, [], 'locked');
     }
-    private function page(string $body, int $status = 200, array $headers = []): Response
+    private function page(string $body, int $status = 200, array $headers = [], string $layout = ''): Response
     {
-        $css = '@font-face{font-family:vazir;src:url(/assets/fonts/Vazirmatn-Regular.ttf)}*{box-sizing:border-box}body{margin:0;background:#FFF8E7;color:#2B1D0E;font-family:vazir,Tahoma,sans-serif;line-height:1.9}main{max-width:34rem;margin:5vh auto;padding:24px;background:#fff;border:1px solid #ead9b6;border-radius:16px}h1{font-size:1.35rem}label{display:block;font-weight:bold}input{display:block;width:100%;padding:12px;border:1px solid #d4bd91;border-radius:12px;font:inherit;direction:ltr}button{margin-top:16px;padding:12px 20px;background:#F2A900;color:#2B1D0E;border:0;border-radius:12px;font:inherit;font-weight:bold;cursor:pointer}a{color:#256B43}.empty-state{text-align:center;padding:32px 16px;border-radius:16px;background:#fff}.empty-state h2{font-size:18px;margin:10px 0}.empty-state p{font-size:14px;color:#5A4630}.state-logo{font-size:36px;color:#F2A900}.locked-state{border:2px solid #9A3B0A;border-radius:16px;padding:16px}.locked-state h1{color:#9A3B0A}.locked-state a{display:inline-block;background:#F2A900;color:#2B1D0E;padding:12px 20px;border-radius:10px;font-weight:bold}li{padding:10px;background:#F5E9C8;border-radius:16px;margin:8px 0}ul{list-style:none;padding:0}@media(max-width:600px){main{margin:16px;padding:20px}}';
-        return Response::html($status, '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فاکتور دیجیتال کندو</title><style>'.$css.'</style></head><body><main>'.$body.'</main></body></html>', array_merge(['Cache-Control'=>'no-store', 'Content-Security-Policy'=>"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'", 'Referrer-Policy'=>'no-referrer'], $headers));
+        $css = '@font-face{font-family:vazir;src:url(/assets/fonts/Vazirmatn-Regular.ttf)}*{box-sizing:border-box}body{margin:0;background:#FFF8E7;color:#2B1D0E;font-family:vazir,Tahoma,sans-serif;line-height:1.9}main{max-width:34rem;margin:5vh auto;padding:24px;background:#fff;border:1px solid #ead9b6;border-radius:16px}h1{font-size:1.35rem}label{display:block;font-weight:bold}input{display:block;width:100%;padding:12px;border:1px solid #d4bd91;border-radius:12px;font:inherit;direction:ltr}button{margin-top:16px;padding:12px 20px;background:#F2A900;color:#2B1D0E;border:0;border-radius:12px;font:inherit;font-weight:bold;cursor:pointer}a{color:#256B43}.state-header{background:#2B1D0E;color:#FFF8E7;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;font-size:20px}.state-header span{font-size:13px;background:#F5E9C8;color:#2B1D0E;border-radius:12px;padding:4px 10px}.state-header+main{margin:16px auto}.empty-state{text-align:center;padding:32px 16px;border-radius:16px;background:#fff}.empty-state h2{font-size:18px;margin:10px 0}.empty-state p{font-size:14px;color:#5A4630}.state-logo{font-size:36px;color:#F2A900}.locked-state{border:2px solid #9A3B0A;border-radius:16px;padding:16px}.locked-state h1{color:#9A3B0A}.locked-state a{display:inline-block;background:#F2A900;color:#2B1D0E;padding:12px 20px;border-radius:10px;font-weight:bold}li{padding:10px;background:#F5E9C8;border-radius:16px;margin:8px 0}ul{list-style:none;padding:0}@media(max-width:600px){main{margin:16px;padding:20px}}';
+        $heading = $layout === 'empty' ? 'فاکتورهای من' : ($layout === 'locked' ? 'ورود به کندو' : '');
+        $header = $heading === '' ? '' : '<header class="state-header"><b>'.self::e($heading).'</b><span>نقش: مشتری</span></header>';
+        return Response::html($status, '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فاکتور دیجیتال کندو</title><style>'.$css.'</style></head><body>'.$header.'<main>'.$body.'</main></body></html>', array_merge(['Cache-Control'=>'no-store', 'Content-Security-Policy'=>"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'", 'Referrer-Policy'=>'no-referrer'], $headers));
     }
     private function form(Request $request): array
     {
