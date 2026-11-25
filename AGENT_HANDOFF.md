@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T3 sprint (supersedes PHP-T2 ordering)
+
+Read main PHP-T3 and C# M-010/M-011. Stage 1 P-36 in progress; only after green/report stage 2 local C# Hub end-to-end, then P-32, then stage 4. PR #3 stays draft; never merge. Design README and normal/empty/locked boards read. The outbox links to public `/i/{token}`, not just `/account` detail; work is applied to public HTML while retaining frozen golden markers and auth gates, plus customer empty/locked styles. Screenshots not yet captured: sandbox chromium failed `libnspr4.so: cannot open shared object file: No such file or directory`; CI artifact constraint and no workflow edits must be honored. `tests/visual/p36-fixture.php` contains synthetic offline renderer fixture. No stage green claimed. E-72 standby remains.
+
 ## PHP-T2 local MUST report; P-36 next
 
 Backup/isolated restore and Linux XAMPP-like synthetic demo CI passed at f7f742e, runs 45592999722/45593010987; not real Windows, physical offsite, or production restore. Runbook records trusted DDL, checksum not authenticity, InnoDB limitations. Local security review and admin mandatory direct-peer limit CI passed at c2e9378, runs 45593387150/45593395767; proxy sharing, distributed attacks, hosting and pentest remain. Reports ORDER-16-P-30/P-34 and PHP-T2 status updated together. PR #3 remains draft. E-72 reconciliation suspended pending new Python tag, third C# verdict and owner trigger. P-36 started with board/data-boundary mapping in docs/reports/ORDER-17-P-36.md; implementation and screenshots normal/empty/locked pending; C# main design README and board read; P-32 only after P-36 green. No workflow edits or main push.

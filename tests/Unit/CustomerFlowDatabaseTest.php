@@ -101,6 +101,7 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $this->assertSame('INVALID', $auth->verify($second['challenge_id'], $sms->codes[1], $csrf[1])['status']);
         $locked=$kernel->handle(new Request('POST','/account/verify',['cookie'=>$cookie],[],http_build_query(['csrf'=>$csrf[1], 'challenge'=>$second['challenge_id'], 'code'=>$sms->codes[1]])));
         $this->assertSame(429,$locked->status()); $this->assertStringContainsString('پشتیبانی تلگرام',$locked->body());
+        $this->assertStringContainsString('class="locked-state"', $locked->body());
         $this->assertFalse($auth->challengeLocked($second['challenge_id'],str_repeat('Z',43)));
         $this->assertSame('CONFLICT', $auth->issue('+989120000002', 'TEST-second', $csrf[1])['status']);
         $this->assertSame('TELEGRAM', $auth->issue(self::PHONE, 'TEST-third', $csrf[1])['status']);

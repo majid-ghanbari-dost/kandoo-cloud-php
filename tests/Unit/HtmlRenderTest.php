@@ -116,6 +116,18 @@ final class HtmlRenderTest extends TestCase
         $this->assertStringContainsString('Asia/Tehran', $html);
     }
 
+    public function testPublicOutboxPageUsesMobileReceiptLayoutWithoutChangingRecordedValues(): void
+    {
+        $this->seedProjection();
+        $html = $this->renderHtml();
+        $this->assertStringContainsString('class="brand-header"', $html);
+        $this->assertStringContainsString('class="tear"', $html);
+        $this->assertStringContainsString('background: var(--honey)', $html);
+        $this->assertStringContainsString('@media (max-width:600px)', $html);
+        $this->assertStringContainsString('25,000</bdi> ریال', $html);
+        $this->assertStringNotContainsString(self::TOKEN, $html);
+    }
+
     public function testRawTokenNeverAppearsAndGapCopyIsExplicit(): void
     {
         $this->seedProjection();

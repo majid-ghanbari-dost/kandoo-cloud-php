@@ -148,15 +148,20 @@ final class Html
   color-scheme: light;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--cream); color: var(--ink); font-family: "Vazirmatn", Tahoma, Arial, sans-serif; line-height: 1.9; }
-.sheet { max-width: 46rem; margin: var(--space-5) auto; background: var(--paper); border: 1px solid var(--line); border-top: 6px solid var(--honey); border-radius: var(--radius); padding: var(--space-5); }
+body { margin: 0; background: var(--wax); color: var(--ink); font-family: "Vazirmatn", Tahoma, Arial, sans-serif; line-height: 1.9; }
+.sheet { max-width: 46rem; margin: 20px auto; background: var(--paper); border: 0; border-radius: 16px; padding: 20px 18px; box-shadow: 0 1px 0 rgba(43,29,14,.08); }
+.brand-header { display:flex; align-items:center; gap:12px; }
+.brand-header svg { flex:none; }
+.brand-header .store { font-size:20px; line-height:1.4; }
+.tear { border:0; border-top:2px dashed #D9C9A0; margin:18px -18px; }
+.print-hint { text-align:center; color:var(--muted); font-size:.8rem; }
 .eyebrow { margin: 0; color: var(--green); font-weight: 700; letter-spacing: .02em; }
 h1 { font-size: 1.35rem; margin: var(--space-1) 0 var(--space-2); }
 h2 { font-size: 1rem; margin: 0 0 var(--space-2); }
 .store { margin: 0; font-size: 1.05rem; font-weight: 700; }
-.facts { display: grid; grid-template-columns: auto 1fr; gap: var(--space-1) var(--space-3); background: var(--wax); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-4) 0; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; padding:0; margin:14px 0; }
 .facts dt { color: var(--muted); font-size: .85rem; white-space: nowrap; }
-.facts dd { margin: 0; font-weight: 700; }
+.facts dd { margin: 0; font-weight: 700; text-align:left; overflow-wrap:anywhere; }
 .tz { color: var(--muted); font-size: .75rem; font-weight: 400; }
 .status.issued { color: var(--green); }
 .status.review { color: var(--review); }
@@ -174,24 +179,30 @@ table.lines { width: 100%; border-collapse: collapse; margin: var(--space-4) 0; 
 table.lines th { background: var(--wax); border: 1px solid var(--line); padding: var(--space-2); font-size: .9rem; }
 table.lines td { border: 1px solid var(--line); padding: var(--space-2); }
 table.lines .num { text-align: left; }
-.payable { font-size: 1.1rem; font-weight: 700; color: var(--green); background: var(--cream); border: 1px solid var(--line); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-3) 0; }
+.payable { font-size: 1.1rem; font-weight: 700; color: var(--ink); background: var(--honey); border: 0; border-radius: 12px; padding: 14px 16px; margin: var(--space-3) 0; }
 .legal { margin-top: var(--space-4); border-top: 1px solid var(--line); padding-top: var(--space-3); font-size: .8rem; color: var(--review); }
 .legal p { margin: var(--space-1) 0; }
 .legal .en { color: var(--muted); }
+@media (max-width:600px) {
+  .sheet { margin:20px 16px; }
+  table.lines { display:block; overflow-x:auto; }
+  .facts { grid-template-columns:auto 1fr; }
+}
 @media print {
   body { background: var(--paper); }
   .sheet { margin: 0; border: none; border-top: 4px solid var(--honey); border-radius: 0; }
+  .print-hint { display:none; }
   @page { margin: 12mm; }
 }
 </style>
 </head>
 <body>
 <main class="sheet">
-<header>
-<p class="eyebrow">فاکتور دیجیتال کندو</p>
-<h1>فاکتور شماره <bdi>{$displayNumber}</bdi></h1>
-<p class="store">{$storeName}</p>
+<header class="brand-header">
+<svg width="56" height="56" viewBox="0 0 72 72" role="img" aria-label="کندو"><polygon points="36,4 63,20 63,52 36,68 9,52 9,20" fill="#F2A900"/><path d="M24 38l8 8 16-18" fill="none" stroke="#2B1D0E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div><p class="store">{$storeName}</p><p class="eyebrow">فاکتور دیجیتال کندو</p><h1>فاکتور شماره <bdi>{$displayNumber}</bdi></h1></div>
 </header>
+<hr class="tear">
 <dl class="facts">
 <dt>شماره فاکتور</dt><dd><bdi>{$displayNumber}</bdi></dd>
 <dt>وضعیت</dt><dd><span class="{$statusClass}">{$statusLabel}</span> <bdi>({$lifecycle})</bdi></dd>
@@ -199,13 +210,15 @@ table.lines .num { text-align: left; }
 <dt>شناسه فاکتور</dt><dd dir="ltr"><bdi>{$invoiceId}</bdi></dd>
 {$customerFact}
 </dl>
-{$gapSection}
-{$paymentsSection}
+<hr class="tear">
 <table class="lines">
 <thead><tr><th>کالا</th><th class="num">تعداد (هزارم واحد)</th><th class="num">قیمت واحد (ریال)</th><th class="num">جمع (ریال)</th></tr></thead>
 <tbody>{$rows}</tbody>
 </table>
 <p class="payable">مبلغ قابل پرداخت: <bdi>{$payable}</bdi> ریال</p>
+{$paymentsSection}
+{$gapSection}
+<p class="print-hint">برای نگهداری فاکتور، از چاپ مرورگر استفاده کنید.</p>
 <footer class="legal">
 <p>D14 placeholder — needs lawyer approval</p>
 <p class="en">وضعیت متن حقوقی: needs lawyer approval</p>

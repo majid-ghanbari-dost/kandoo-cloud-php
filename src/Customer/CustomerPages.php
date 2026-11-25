@@ -70,7 +70,7 @@ final class CustomerPages
                 $html = '<h1>فاکتورهای من</h1>';
                 $groups = [];
                 foreach ($this->auth->invoices($phone) as $row) { $groups[$row['store_id']][] = $row; }
-                if ($groups === []) { $html .= '<p>هنوز فاکتوری ثبت نشده است.</p>'; }
+                if ($groups === []) { $html .= self::emptyState(); }
                 foreach ($groups as $rows) {
                     $html .= '<section><h2>'.self::e((string)$rows[0]['store_name']).'</h2><ul>';
                     foreach ($rows as $row) {
@@ -171,16 +171,22 @@ final class CustomerPages
         return $this->gateway->rateHit($scope, $key, $window, $limit);
     }
 
+    private static function emptyState(): string
+    {
+        return '<section class="empty-state"><svg width="36" height="36" viewBox="0 0 72 72" role="img" aria-label="کندو"><polygon points="36,4 63,20 63,52 36,68 9,52 9,20" fill="#F2A900"/><path d="M24 38l8 8 16-18" fill="none" stroke="#2B1D0E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><h2>هنوز فاکتوری ندارید</h2><p>وقتی از یک فروشگاه کندو خرید کنید و شماره‌ی شما را ثبت کنند، فاکتور همین‌جا ظاهر می‌شود.</p></section>';
+    }
+
     private function telegram(): Response
     {
         $url = $this->config['telegram_url'] ?? null;
-        $content = '<h1>ورود نیاز به پشتیبانی دارد</h1><p>درخواست قفل شده یا سهمیه کد تمام شده است. برای ادامه با پشتیبانی تلگرام تماس بگیرید.</p>';
+        $content = '<section class="locked-state"><h1>ورود نیاز به پشتیبانی دارد</h1><p>درخواست قفل شده یا سهمیه کد تمام شده است. برای ادامه با پشتیبانی تلگرام تماس بگیرید.</p>';
         if (is_string($url)) { $content .= '<p><a rel="noopener noreferrer" href="'.self::e($url).'">تلگرام</a></p>'; }
+        $content .= '</section>';
         return $this->page($content, 429);
     }
     private function page(string $body, int $status = 200, array $headers = []): Response
     {
-        $css = '@font-face{font-family:vazir;src:url(/assets/fonts/Vazirmatn-Regular.ttf)}*{box-sizing:border-box}body{margin:0;background:#FFF8E7;color:#2B1D0E;font-family:vazir,Tahoma,sans-serif;line-height:1.9}main{max-width:34rem;margin:5vh auto;padding:24px;background:#fff;border:1px solid #ead9b6;border-radius:16px}h1{font-size:1.35rem}label{display:block;font-weight:bold}input{display:block;width:100%;padding:12px;border:1px solid #d4bd91;border-radius:12px;font:inherit;direction:ltr}button{margin-top:16px;padding:12px 20px;background:#F2A900;color:#2B1D0E;border:0;border-radius:12px;font:inherit;font-weight:bold;cursor:pointer}a{color:#256B43}li{padding:10px;background:#F5E9C8;border-radius:16px;margin:8px 0}ul{list-style:none;padding:0}@media(max-width:600px){main{margin:16px;padding:20px}}';
+        $css = '@font-face{font-family:vazir;src:url(/assets/fonts/Vazirmatn-Regular.ttf)}*{box-sizing:border-box}body{margin:0;background:#FFF8E7;color:#2B1D0E;font-family:vazir,Tahoma,sans-serif;line-height:1.9}main{max-width:34rem;margin:5vh auto;padding:24px;background:#fff;border:1px solid #ead9b6;border-radius:16px}h1{font-size:1.35rem}label{display:block;font-weight:bold}input{display:block;width:100%;padding:12px;border:1px solid #d4bd91;border-radius:12px;font:inherit;direction:ltr}button{margin-top:16px;padding:12px 20px;background:#F2A900;color:#2B1D0E;border:0;border-radius:12px;font:inherit;font-weight:bold;cursor:pointer}a{color:#256B43}.empty-state{text-align:center;padding:32px 16px;border-radius:16px;background:#fff}.empty-state h2{font-size:18px;margin:10px 0}.empty-state p{font-size:14px;color:#5A4630}.state-logo{font-size:36px;color:#F2A900}.locked-state{border:2px solid #9A3B0A;border-radius:16px;padding:16px}.locked-state h1{color:#9A3B0A}.locked-state a{display:inline-block;background:#F2A900;color:#2B1D0E;padding:12px 20px;border-radius:10px;font-weight:bold}li{padding:10px;background:#F5E9C8;border-radius:16px;margin:8px 0}ul{list-style:none;padding:0}@media(max-width:600px){main{margin:16px;padding:20px}}';
         return Response::html($status, '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>فاکتور دیجیتال کندو</title><style>'.$css.'</style></head><body><main>'.$body.'</main></body></html>', array_merge(['Cache-Control'=>'no-store', 'Content-Security-Policy'=>"default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'", 'Referrer-Policy'=>'no-referrer'], $headers));
     }
     private function form(Request $request): array

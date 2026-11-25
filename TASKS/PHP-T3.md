@@ -23,4 +23,4 @@ P-31 finish with the C# review of the vectors, then P-30 runbook, P-33 kit, P-34
 PM-06/PM-17: real customer data NEVER in git/CI/reports. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
 
 ---
-**Status:** DISPATCHED (T0 2026-11-25) — start stage 1 (P-36 v2) immediately.
+## Status: IN PROGRESS — stage 1 P-36: implementation and visual evidence in progress; no stage green yet.
