@@ -6,10 +6,12 @@
 |---|---|---|
 | ingest | `IngestService` کلید دستگاه را به فروشگاه محدود می‌کند، hash مقایسه می‌شود، حالت bypass در production مجاز نیست؛ fencing و محدودیت batch وجود دارد. | احراز Bearer پشت FastCGI/پروکسی و محرمانگی header در هاست هدف **NOT-VERIFIED**؛ raw HTTP فقط دموی LAN است. |
 | OTP | سهمیهٔ اعلان تأییدشده، قفل configurable، محدودیت device و IP و کلید idempotency در `CustomerAuth`/`CustomerPages` هستند. | IP از peer مستقیم است؛ reverse proxy ممکن است همهٔ مشتری‌ها را در یک bucket قرار دهد. device token قابل تعویض است؛ عدم وابستگی session bearer به سخت‌افزار را باید در مدل تهدید پذیرفت. |
-| admin | به‌طور پیش‌فرض خاموش؛ Basic با password hash، origin/CSRF و cookie ایمن در production. | محدودکنندهٔ اختصاصی تلاش رمز admin در برنامه مشاهده نشد؛ پیش از عمومی‌کردن باید کنترل‌های مؤثر HTTPS و محدودسازی brute-force در لایهٔ دسترسی اجرا و تأیید شود. |
+| admin | به‌طور پیش‌فرض خاموش؛ Basic با password hash، origin/CSRF و cookie ایمن در production. | محدودکنندهٔ اجباری per-direct-peer پیش از بررسی رمز، پیش‌فرض ۱۰ درخواست در دقیقه و قابل تنظیم ۱ تا ۱۰۰۰؛ 429 با Retry-After. تست Memory و MariaDB سبز است. پشت proxy همه ممکن است یک bucket داشته باشند؛ مهاجم توزیع‌شده یا تخلیهٔ bucket و لاگ/HTTPS در میزبان همچنان نیازمند کنترل لایهٔ دسترسی است. |
 | public | token با hash ایندکس، مقایسه، پاسخ 404 یکسان، rate limit و no-store؛ HTML escape می‌شود. | نرخ‌سنجی public از IP مستقیم استفاده می‌کند؛ استقرار proxy و عدم ثبت URI حاوی token در لاگ وب‌سرور باید روی میزبان بررسی شود. |
 | customer API proposal | Bearer تصادفی و expiry، و فهرست محدود به تلفن session؛ output فیلد هزینه یا profit ندارد. | endpoint فهرست جدید محدودکنندهٔ مستقل درخواست ندارد؛ رفتار هنگام bearer دزدیده‌شده و لاگ سرور/پروکسی باید بررسی و کنترل شود. |
 
 ## بار
 
 آزمون P-24 در CI برای MariaDB 10.6 و PHP 8.1 اجرا می‌شود: ۱۰۰ GET ساختگی به فاکتور ناموجود، ۵۰ هم‌زمان، loopback، یک worker و rate limit غیرفعال در فایل موقت. نتایج run مشخص در گزارش P-34 آورده می‌شوند. این **معادل پیکربندی واقعی plan E1 نیست**: CPU/RAM، worker و storage میزبان و مسیرهای OTP/admin/ingest ناشناخته‌اند. قبل از ادعای آمادگی میزبان، آزمون دادهٔ ساختگی با پارامترهای ثبت‌شدهٔ میزبان، حفاظت rate limit و سناریوهای کاربردی لازم است. هیچ ادعای ظرفیت تولید یا SLA نشده است.
+
+Backup فقط فایل و digest مورد اعتماد را به DB آزمایشی خالی بازمی‌گرداند؛ SHA-256 اصالت را تضمین نمی‌کند و DDL فایل اجرا می‌شود. کنترل مجوز فایل، DDL هم‌زمان، نگهداری، لاگ، HTTPS و بررسی امنیت میزبان و penetration test خارج از شواهد محلی‌اند.
