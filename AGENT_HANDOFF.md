@@ -4,7 +4,7 @@ This document is maintained under standing order SO-01.
 
 ## PHP-T3 P-36 — CI restored, not stage green
 
-Opened branch CI 45782395782 and PR CI 45782403192 at a77824c; both PHP 8.1/8.5 MariaDB, golden replay, Hub C-83 synthetic transport HTTP smoke, PHPUnit artifacts passed. No CI screenshot artifacts, so stage 1 not green/tagged. Implemented demo-only local outbox `/i/<public_token>` link and CI HubReplay script to follow it over actual HTTP; newly changed code awaits CI. This is Cloud's synthetic outbox, not proof of Hub outbox or Windows/phone. Previous prohibition on editing workflow means screenshot artifact generation needs authorization or an approved alternative. PR #3 draft, stage 2 not started.
+Opened branch CI 45782395782 and PR CI 45782403192 at a77824c; both PHP 8.1/8.5 MariaDB, golden replay, Hub C-83 synthetic transport HTTP smoke, PHPUnit artifacts passed. No CI screenshot artifacts, so stage 1 not green/tagged. Demo-only local outbox `/i/<public_token>` link and CI HubReplay script to follow it over actual HTTP passed at 465ace1a3ba5b33caa9f66825b1a77f99d969eb0 in branch CI 45782721083 and PR CI 45782730998; outbox contains a token and must remain private. This is Cloud's synthetic outbox, not proof of Hub outbox or Windows/phone. Previous prohibition on editing workflow means screenshot artifact generation needs authorization or an approved alternative. PR #3 draft, stage 2 not started.
 
 ## PHP-T3 — scan stop lifted by user relay
 
