@@ -32,7 +32,16 @@ final class AnnouncementService
             $this->cost?->reserve($pdo, $requestId, $storeId, 'notification', $this->clock->nowUnix());
             $pdo->commit();
         } catch (\Throwable $e) { if ($pdo->inTransaction()) { $pdo->rollBack(); } throw $e; }
-        try { $accepted = $this->adapter->sendAnnouncement($phone); } catch (\Throwable $e) { $accepted = false; }
+        try {
+            if ($this->adapter instanceof \Kandoo\Cloud\Demo\DemoSms) {
+                $q = $pdo->prepare("SELECT public_token FROM public_invoices WHERE store_id=? AND invoice_id=? AND lifecycle_status='ISSUED'");
+                $q->execute([$storeId,$invoiceId]);
+                $token = $q->fetchColumn();
+                $accepted = is_string($token) && $this->adapter->sendAnnouncement($phone,$token);
+            } else {
+                $accepted = $this->adapter->sendAnnouncement($phone);
+            }
+        } catch (\Throwable $e) { $accepted = false; }
         $q = $pdo->prepare('UPDATE cloud_sms_delivery_requests SET state=?, provider_receipt=? WHERE request_id=? AND state=?');
         $q->execute([$accepted ? 'accepted' : 'uncertain', $this->adapter->lastReceipt(), $requestId, 'pending']);
         return $accepted ? 'ACCEPTED' : 'UNCERTAIN';

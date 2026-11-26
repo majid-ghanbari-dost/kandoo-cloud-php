@@ -34,4 +34,4 @@ Run a secrets scan over the WHOLE repo AND ITS FULL HISTORY (gitleaks-style, or 
 PM-06/PM-17: real customer data NEVER in git/CI/reports. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
 
 ---
-## Status: IN PROGRESS — scan findings reported; user relayed PM ruling lifting stop; P-36 CI and screenshot/HTTP proof pending; no stage green or tag.
+## Status: IN PROGRESS — scan findings reported; user relayed PM ruling lifting stop; P-36 PHP 8.1/8.5 MariaDB CI green at a77824c (45782395782 / 45782403192); demo outbox HTTP proof in progress, CI screenshot artifacts pending; no stage green or tag.

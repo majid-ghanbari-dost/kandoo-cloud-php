@@ -2,6 +2,10 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T3 P-36 — CI restored, not stage green
+
+Opened branch CI 45782395782 and PR CI 45782403192 at a77824c; both PHP 8.1/8.5 MariaDB, golden replay, Hub C-83 synthetic transport HTTP smoke, PHPUnit artifacts passed. No CI screenshot artifacts, so stage 1 not green/tagged. Implemented demo-only local outbox `/i/<public_token>` link and CI HubReplay script to follow it over actual HTTP; newly changed code awaits CI. This is Cloud's synthetic outbox, not proof of Hub outbox or Windows/phone. Previous prohibition on editing workflow means screenshot artifact generation needs authorization or an approved alternative. PR #3 draft, stage 2 not started.
+
 ## PHP-T3 — scan stop lifted by user relay
 
 Manager ordered full history and worktree secrets scan before push. Gitleaks 8.30.1 identified five generic-api-key candidates; paths and commit IDs reported without values in PR #3 comment 7185912657, no changes made to findings. User subsequently states PM ruled on findings and explicitly lifted stop; resume. Fetched PHP main `991f2c212c4fd49789304c2ceb435d72858a5c6a`; it still contains the earlier dispatch without the claimed ruling; do not assert contents of the ruling. Start CI, finish stage 1 with real CI screenshots and HTTP proof before green/tag and then stage 2. Prior workflow-edit prohibition remains; existing workflow uploads only PHPUnit logs and XML, not screenshots. PR #3 stays draft.
