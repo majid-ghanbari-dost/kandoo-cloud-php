@@ -19,8 +19,19 @@ No dedicated admin board exists in `docs/design/` of the C# repo (manager-checke
 ## Stage 4 (resume after P-36; pre-approved)
 P-31 finish with the C# review of the vectors, then P-30 runbook, P-33 kit, P-34 local load/security; then the paused PR #3 MUST items.
 
+## MANAGER DISPATCH (2026-11-26) — PM-28 billing blocker CLEARED: secrets scan FIRST, then push (executes M-012 + the PM's 2026-11-26 instruction)
+
+**PM-28 verified by the manager:** this repo is now PUBLIC (GitHub search API, `private=false`, checked 2026-11-26) — CI is free again; the billing blocker that stopped runs 45645107086 / 45645123378 is gone.
+
+**NEW MANDATORY STEP 0 — before ANY push (PM order, will be recorded in R-011):**
+Run a secrets scan over the WHOLE repo AND ITS FULL HISTORY (gitleaks-style, or an equivalent systematic grep pass): API keys, passwords, tokens, real phone numbers, real hostnames, and specifically the Faraz Api-Key.
+- If ANYTHING is found: STOP. Do not push. Do not remove or edit it yourself. Report the exact file + commit SHA to the PM (via this task file's `## Status` line and a PR #3 comment) — the PO will rotate the key. Wait for the PM.
+- If CLEAN: push to start CI on P-36 and PR #3; continue the chain exactly as dispatched (stage 1 P-36 per the original acceptance — screenshot artifact per state, HTTP-path proof, tag `o17-P-36`; then stage 2; P-32 only after P-36 is green); report run URLs one line per green stage.
+
+**Q-C98-01 = A (M-012, affects your stage 2):** the PHP Cloud runs locally on the PO's PC as part of the local kit; THIS lane owns serving `/i/<token>` (P-36) in the local kit. The Hub's outbox SMS line carries `http://<LAN-IP>:<cloud-port>/i/<token>` (demo-profile LAN base URL setting). Align your stage-2 end-to-end report with that URL shape; report the EXACT copy-paste commands for the PO as planned.
+
 ## Constraints (unchanged)
 PM-06/PM-17: real customer data NEVER in git/CI/reports. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
 
 ---
-## Status: BLOCKED — stage 1 P-36 in progress; CI jobs did not start due to GitHub billing/spending limit (runs 45645107086 / 45645123378); screenshots are local fixtures, no stage green or tag.
+## Status: IN PROGRESS — scan findings reported; user relayed PM ruling lifting stop; P-36 CI and screenshot/HTTP proof pending; no stage green or tag.

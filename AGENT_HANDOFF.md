@@ -2,6 +2,14 @@
 
 This document is maintained under standing order SO-01.
 
+## PHP-T3 — scan stop lifted by user relay
+
+Manager ordered full history and worktree secrets scan before push. Gitleaks 8.30.1 identified five generic-api-key candidates; paths and commit IDs reported without values in PR #3 comment 7185912657, no changes made to findings. User subsequently states PM ruled on findings and explicitly lifted stop; resume. Fetched PHP main `991f2c212c4fd49789304c2ceb435d72858a5c6a`; it still contains the earlier dispatch without the claimed ruling; do not assert contents of the ruling. Start CI, finish stage 1 with real CI screenshots and HTTP proof before green/tag and then stage 2. Prior workflow-edit prohibition remains; existing workflow uploads only PHPUnit logs and XML, not screenshots. PR #3 stays draft.
+
+## PHP-T3 continuation — GitHub access blocked
+
+User reports billing unblocked and requests rerun, CI-produced screenshot artifacts for all three states, PHPUnit/MariaDB G-018, then tag and Stage 2. `gh run rerun 45645107086 --failed` failed before rerun: `Get "https://api.github.com/repos/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45645107086?exclude_pull_requests=true": EOF`; `git fetch` failed TLS handshake, `gh auth status` reports authentication failed. No new run, green stage, tag or Stage 2 claimed. Git metadata was reset by the platform to shallow base, while worktree has prior e2f8356 files; fetch and verify hashes before resetting metadata. TASKS/PHP-T3 status updated locally, cannot push/report until GitHub access works. Existing CI uploads only PHPUnit text/XML, not screenshot PNG; prior explicit instruction prohibits workflow edits; resolve within permissions before claiming required CI screenshots. PR #3 remains draft.
+
 ## PHP-T3 sprint (supersedes PHP-T2 ordering)
 
 Read main PHP-T3 and C# M-010/M-011. Stage 1 P-36 in progress; only after green/report stage 2 local C# Hub end-to-end, then P-32, then stage 4. PR #3 stays draft; never merge. Design README and normal/empty/locked boards read. The outbox links to public `/i/{token}`, not just `/account` detail; work is applied to public HTML while retaining frozen golden markers and auth gates, plus customer empty/locked styles. Local screenshots of synthetic direct-render fixtures and extracted boards committed under docs/reports/p36-screenshots (not real HTTP/DB or CI screenshot artifacts); Chromium dependencies supplied locally. G-018 Memory replay and lint passed in PHP WASM, not MariaDB/PHPUnit. CI runs 45645107086/45645123378 did not start due to GitHub billing/spending limit; exact error in P-36 report. Resolve billing then run both PHP jobs, smoke and artifacts; no workflow edits. `tests/visual/p36-fixture.php` contains synthetic offline renderer fixture. No stage green claimed. E-72 standby remains.
