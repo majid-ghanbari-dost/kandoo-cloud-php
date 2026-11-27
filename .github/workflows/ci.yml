@@ -11,11 +11,14 @@ on:
       - main
       - arena/ae9da477-kandoo-cloud-php
       - arena/f729618f-kandoo-cloud-php
+      - arena/c079209e-kandoo-cloud-php
     tags:
       - 'stable-*'
       - 'w11-*'
       - 'o14-P-*'
       - 'o15-P-*'
+      - 'o16-*'
+      - 'o17-*'
   pull_request:
     branches:
       - main
