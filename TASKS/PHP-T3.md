@@ -1,7 +1,7 @@
 # [AGENT-TASK PHP-T3] PHP lane — M-010/M-011 sprint chain (P-36 first)
 
 **Lane:** PHP (`majid-ghanbari-dost/kandoo-cloud-php`) — **Posted by:** exec-manager (2026-11-25, Asia/Tehran)
-**Source orders:** M-010 + M-011 (`docs/messages/` on `main` of the C# repo `majid-ghanbari-dost/Kandoo`). Manager answer: R-010 in `docs/messages/MANAGER-TO-PM.md` on `arena/order-15-status` of the C# repo.
+**Source orders:** M-010 + M-011 (`docs/messages/` on `main` of the C# repo `majid-ghanbari-dost/Kandoo`). Manager answer: R-010 in `docs/messages/MANAGER-TO-PM.md` on `arena/order-15-status` of the C# repo; post-merge R-013; owner override R-014 (`docs/messages/R-014.md`) on the same branch.
 **Reporting (GitHub only):** update the `## Status` line in THIS file + report comment on PR #3 and any new PR. One short line per green stage (branch, tag, run URL). Never merge/close — PM merges (PO merges workflow-touching PRs).
 
 ## Sprint ordering (M-010 — this replaces the PHP-T2 ordering for the sprint window)
@@ -23,15 +23,22 @@ P-31 finish with the C# review of the vectors, then P-30 runbook, P-33 kit, P-34
 
 **PM-28 verified by the manager:** this repo is now PUBLIC (GitHub search API, `private=false`, checked 2026-11-26) — CI is free again; the billing blocker that stopped runs 45645107086 / 45645123378 is gone.
 
-**NEW MANDATORY STEP 0 — before ANY push (PM order, will be recorded in R-011):**
+**MANDATORY STEP 0 — before ANY push (PM order, recorded in R-011):**
 Run a secrets scan over the WHOLE repo AND ITS FULL HISTORY (gitleaks-style, or an equivalent systematic grep pass): API keys, passwords, tokens, real phone numbers, real hostnames, and specifically the Faraz Api-Key.
-- If ANYTHING is found: STOP. Do not push. Do not remove or edit it yourself. Report the exact file + commit SHA to the PM (via this task file's `## Status` line and a PR #3 comment) — the PO will rotate the key. Wait for the PM.
+- If ANYTHING is found: STOP. Do not push. Do not remove or edit it yourself. Report the exact file + commit SHA to the PM (via this task file's `## Status` line and a PR #3 comment) — the PO will rotate the key. Wait for the ruling.
 - If CLEAN: push to start CI on P-36 and PR #3; continue the chain exactly as dispatched (stage 1 P-36 per the original acceptance — screenshot artifact per state, HTTP-path proof, tag `o17-P-36`; then stage 2; P-32 only after P-36 is green); report run URLs one line per green stage.
 
 **Q-C98-01 = A (M-012, affects your stage 2):** the PHP Cloud runs locally on the PO's PC as part of the local kit; THIS lane owns serving `/i/<token>` (P-36) in the local kit. The Hub's outbox SMS line carries `http://<LAN-IP>:<cloud-port>/i/<token>` (demo-profile LAN base URL setting). Align your stage-2 end-to-end report with that URL shape; report the EXACT copy-paste commands for the PO as planned.
 
-## Constraints (unchanged)
-PM-06/PM-17: real customer data NEVER in git/CI/reports. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
+## MANAGER UPDATE (2026-11-27) — scan RULED BENIGN; push stop LIFTED; owner speed order; boundaries removed
+
+1. **Scan executed; ruling RECORDED** (R-011 addendum item 4 + R-012 item 2 of the C# repo's `MANAGER-TO-PM.md` channel): the gitleaks 8.30.1 full-history scan flagged exactly FIVE candidates — all TEST-prefixed synthetic fixtures inside test files: `tests/HubReplay/Program.cs` @ `124573f0` (lines 6 + 22), `tests/Unit/DeviceAuthTest.php` @ `97b07897` (line 20), `tests/Unit/IngestFlowTest.php` @ `a3006e39` (lines 149 + 169); hosts `TEST.invalid` / `127.0.0.1`; no real phone number, hostname or Faraz Api-Key pattern anywhere. The manager re-read all five commits directly: **RULED BENIGN — no rotation indicated; PUSH STOP LIFTED.**
+2. **OWNER DIRECT ORDER (2026-11-27, Decision 30 in `docs/decisions-made.md` of the C# repo, R-014 `docs/messages/R-014.md`): every boundary built so far is removed until project delivery — move forward with speed only, no idle gaps.** PM-06/PM-17 is LIFTED by the owner's certification (all project data is fictional); honesty labeling replaces the data ban — generated fixtures stay clearly marked synthetic/fictional and stay inside `tests/`.
+3. **One guardrail kept:** any TEST-prefixed string appearing OUTSIDE `tests/`, or any real credential surfacing later ⇒ immediate re-stop and PO rotation.
+4. **Chain NOW (no waiting on approvals for non-destructive steps):** (1) **push + start CI, move PR #3 OUT OF DRAFT**; (2) stage 1 P-36 per the original acceptance — screenshot artifact per state (normal / empty / locked), HTTP-path proof, tag `o17-P-36`; (3) stage 2 local end-to-end with the C# Hub (Q-C98-01=A URL shape, exact PO commands); (4) stage 3 P-32 v2 once P-36 is green; (5) stage 4 (P-31 finish, P-30 runbook, P-33 kit, P-34 local, PR #3 MUST items). Report run URLs one line per green stage.
+
+## Constraints (updated 2026-11-27)
+PM-06/PM-17 real-data restriction is LIFTED by the owner's 2026-11-27 certification (all project data is fictional); honesty labeling replaces it — generated fixtures clearly marked synthetic/fictional, kept inside `tests/`. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
 
 ---
-## Status: IN PROGRESS — scan findings reported; user relayed PM ruling lifting stop; P-36 PHPUnit/MariaDB and synthetic demo-outbox HTTP proof green at 465ace1 (45782721083 / 45782730998); CI screenshot artifacts blocked by workflow-edit restriction; no stage green or tag.
+## Status: IN PROGRESS — manager ruled scan findings benign; PR #3 ready for review; P-36 PHP/MariaDB and synthetic outbox HTTP CI green at 465ace1 (45782721083 / 45782730998); CI screenshot artifacts still outstanding; no stage green or tag.
