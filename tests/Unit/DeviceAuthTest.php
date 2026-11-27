@@ -78,6 +78,21 @@ final class DeviceAuthTest extends TestCase
         $this->assertSame(401, $kernel->handle(new Request('POST', self::PATH, ['authorization'=>'Bearer '.self::SECRET], [], '{'))->status());
     }
 
+    public function testRevokedDeviceCannotUseEitherCredential(): void
+    {
+        $gateway = new MemoryGateway();
+        $gateway->seedStore(['store_id'=>self::STORE, 'active_writer_device_id'=>self::DEVICE,
+            'active_writer_epoch'=>1, 'accepted_through_seq'=>0, 'entry_count'=>0,
+            'head_entry_hash'=>null, 'projection_version'=>0]);
+        $gateway->insertDevice(self::DEVICE, self::STORE, hash('sha256', self::SECRET), '2026-01-01 00:00:00');
+        $kernel = new Kernel($this->config(), $gateway, new FixedClock(1767323045));
+        $forms = [['authorization'=>'Bearer '.self::SECRET],
+            ['x-kandoo-device-id'=>self::DEVICE, 'x-kandoo-device-secret'=>self::SECRET]];
+        foreach ($forms as $headers) { $this->assertSame(400, $kernel->handle(new Request('POST', self::PATH, $headers, [], '{'))->status()); }
+        $this->assertTrue($gateway->revokeDevice(self::DEVICE, 'TEST', '2026-01-02 00:00:00'));
+        foreach ($forms as $headers) { $this->assertSame(401, $kernel->handle(new Request('POST', self::PATH, $headers, [], '{'))->status()); }
+    }
+
     public function testBypassRestrictedAndExplicit(): void
     {
         $gateway = new MemoryGateway();

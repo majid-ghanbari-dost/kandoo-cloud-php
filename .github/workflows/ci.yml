@@ -100,6 +100,11 @@ jobs:
       - name: Run migrations
         run: php bin/migrate.php
 
+      - name: P-30 successful cron heartbeat smoke (isolated synthetic database)
+        run: |
+          php bin/cron.php
+          php -r 'require "src/bootstrap.php"; $db=new \Kandoo\Cloud\Database(\Kandoo\Cloud\Config::load()->all()); $s=(new \Kandoo\Cloud\Operations\CronHeartbeat($db))->status(time(),120); if (!$s["fresh"]) { fwrite(STDERR,"heartbeat missing or stale\n"); exit(1); } echo "cron heartbeat fresh\n";'
+
       - name: Checkout pinned Hub C-83 for real transport replay
         if: matrix.php == '8.1'
         uses: actions/checkout@v4

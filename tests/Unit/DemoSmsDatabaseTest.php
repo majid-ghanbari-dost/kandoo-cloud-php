@@ -35,7 +35,7 @@ final class DemoSmsDatabaseTest extends DbTestCase
             $auth=new CustomerAuth($config['customer_auth'],$db,$clock,$adapter); $device=str_repeat('Q',43);
             $this->assertSame('OTP_SENT',$auth->issue($phone,'TEST-demo-key',$device)['status']);
             $messages=$pdo->query('SELECT * FROM cloud_demo_sms_outbox ORDER BY kind')->fetchAll(); $this->assertCount(2,$messages);
-            $this->assertStringContainsString('/account/login',$messages[0]['body']);
+            $this->assertStringContainsString('http://192.168.1.5:8080/i/TESTTOKEN1234567890123456',$messages[0]['body']);
             $this->assertStringContainsString('کد ورود',$messages[1]['body']);
             $log=file_get_contents($dir.'/sms.log'); $this->assertSame(2,count(file($dir.'/sms.log'))); $this->assertStringContainsString($messages[1]['body'],$log);
             $gateway->setAdminEnabled(true,'2026-01-01 00:00:00');

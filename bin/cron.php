@@ -20,6 +20,7 @@ use Kandoo\Cloud\ConfigException;
 use Kandoo\Cloud\Database;
 use Kandoo\Cloud\Store\MariaDbGateway;
 use Kandoo\Cloud\Retention\Cleanup;
+use Kandoo\Cloud\Operations\CronHeartbeat;
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -36,6 +37,7 @@ try {
     $currentWindow = intdiv($now, 60) * 60;
     $gateway->pruneRateBuckets($currentWindow - 60); // keep current + previous window
     $counts = (new Cleanup($db, $config->get('retention'), $config->get('customer_auth')['issue_window_seconds'] ?? 0))->run($now);
+    (new CronHeartbeat($db))->recordSuccess(time()); // only after all maintenance succeeds
     fwrite(STDOUT, gmdate('c', $now) . ' retention '.json_encode($counts, JSON_THROW_ON_ERROR) . PHP_EOL);
     exit(0);
 } catch (ConfigException $e) {

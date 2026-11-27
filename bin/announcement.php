@@ -22,7 +22,7 @@ try {
         $adapter = new \Kandoo\Cloud\Demo\DemoSms($config,$db,$clock,getenv('KANDOO_DEMO_DIR') ?: kandoo_app_root().'/.kandoo-demo');
     } elseif ($config['faraz_sms']['enabled'] ?? false) { $adapter = new FarazAdapter($config['faraz_sms']); }
     else { throw new RuntimeException('SMS disabled'); }
-    $service = new AnnouncementService($db, $adapter, $clock);
+    $service = new AnnouncementService($db, $adapter, $clock, new \Kandoo\Cloud\Sms\SmsCostRecorder($config['sms_cost']));
     if ($argv[1] === 'send') { $status = $service->send($argv[2], $argv[3], $argv[4]); }
     elseif ($argv[1] === 'confirm') { $status = $service->confirmDelivery($argv[2]); }
     else {

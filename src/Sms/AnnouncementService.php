@@ -11,7 +11,7 @@ use Kandoo\Cloud\Support\Uuid;
 /** Reserve sends before contacting the provider; uncertain sends are never retried automatically. */
 final class AnnouncementService
 {
-    public function __construct(private Database $db, private FarazAdapter|\Kandoo\Cloud\Demo\DemoSms $adapter, private Clock $clock) {}
+    public function __construct(private Database $db, private FarazAdapter|\Kandoo\Cloud\Demo\DemoSms $adapter, private Clock $clock, private ?SmsCostRecorder $cost = null) {}
 
     public function send(string $requestId, string $storeId, string $invoiceId): string
     {
@@ -29,9 +29,19 @@ final class AnnouncementService
             if (!is_string($phone) || preg_match('/^\+989[0-9]{9}$/D', $phone) !== 1) { $pdo->commit(); return 'INVALID'; }
             $q = $pdo->prepare('INSERT INTO cloud_sms_delivery_requests (request_id, store_id, invoice_id, phone, state, created_at) VALUES (?, ?, ?, ?, ?, ?)');
             $q->execute([$requestId, $storeId, $invoiceId, $phone, 'pending', $this->clock->nowUnix()]);
+            $this->cost?->reserve($pdo, $requestId, $storeId, 'notification', $this->clock->nowUnix());
             $pdo->commit();
         } catch (\Throwable $e) { if ($pdo->inTransaction()) { $pdo->rollBack(); } throw $e; }
-        try { $accepted = $this->adapter->sendAnnouncement($phone); } catch (\Throwable $e) { $accepted = false; }
+        try {
+            if ($this->adapter instanceof \Kandoo\Cloud\Demo\DemoSms) {
+                $q = $pdo->prepare("SELECT public_token FROM public_invoices WHERE store_id=? AND invoice_id=? AND lifecycle_status='ISSUED'");
+                $q->execute([$storeId,$invoiceId]);
+                $token = $q->fetchColumn();
+                $accepted = is_string($token) && $this->adapter->sendAnnouncement($phone,$token);
+            } else {
+                $accepted = $this->adapter->sendAnnouncement($phone);
+            }
+        } catch (\Throwable $e) { $accepted = false; }
         $q = $pdo->prepare('UPDATE cloud_sms_delivery_requests SET state=?, provider_receipt=? WHERE request_id=? AND state=?');
         $q->execute([$accepted ? 'accepted' : 'uncertain', $this->adapter->lastReceipt(), $requestId, 'pending']);
         return $accepted ? 'ACCEPTED' : 'UNCERTAIN';

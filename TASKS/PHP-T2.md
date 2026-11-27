@@ -37,4 +37,4 @@ Report verified: PR #3 comment 7124798923 (2026-11-24T07:15:54Z).
 - NEW cross-lane item (from the PY-T2 report on PR #16): review `tests/golden/e72/canonical-invoice-v1-2-draft-vector.json` (Kandoo-Digital-Invoice @ `1e620cc`) and record the PHP verdict as a PR #3 comment.
 
 ---
-## Status: IN PROGRESS (manager-verified 2026-11-24: PO-OWN-1..4 recorded; P-31/P-33 tagged + CI green; P-30 backup/restore + local security review remain; PR #3 draft — see Manager addendum)
+## Status: IN PROGRESS — PR #3 draft; P-30 synthetic separate backup/isolated restore and Linux XAMPP-like dry-run green; local security review and admin peer limit green; P-36 board mapping started, implementation and screenshots pending; real-host/Windows validation not claimed; E-72 reconciliation on standby

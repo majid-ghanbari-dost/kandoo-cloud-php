@@ -58,6 +58,33 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $verify = $kernel->handle(new Request('POST','/account/verify',['cookie'=>$cookie],[],http_build_query(['csrf'=>$csrf[1], 'challenge'=>$id[1], 'code'=>$sms->codes[0]])));
         $this->assertSame(303, $verify->status()); $this->assertStringContainsString('HttpOnly', $verify->header('Set-Cookie'));
         preg_match('/kandoo_session=([^;]+)/', $verify->header('Set-Cookie'), $session); $this->assertNotEmpty($session[1]);
+        // Native API: only the session owner can list their own invoices, grouped by store.
+        $missing=$kernel->handle(new Request('GET','/v1/customer/invoices'));
+        $this->assertSame(401,$missing->status());
+        $invalid=$kernel->handle(new Request('GET','/v1/customer/invoices',['authorization'=>'Bearer '.str_repeat('A',43)]));
+        $this->assertSame(401,$invalid->status());
+        $apiList=$kernel->handle(new Request('GET','/v1/customer/invoices',['authorization'=>'Bearer '.$session[1]]));
+        $this->assertSame(200,$apiList->status());
+        $this->assertSame('no-store',$apiList->header('Cache-Control'));
+        $native=json_decode($apiList->body(),true);
+        $this->assertCount(1,$native['stores']);
+        $this->assertSame(self::STORE,$native['stores'][0]['store_id']);
+        $this->assertSame(self::INVOICE,$native['stores'][0]['invoices'][0]['invoice_id']);
+        $this->assertCount(1,$native['stores'][0]['invoices']);
+        $this->assertStringNotContainsString('profit',strtolower($apiList->body()));
+        $this->assertStringNotContainsString('TEST Other',$apiList->body());
+        $nativePath='/v1/customer/invoices/'.self::STORE.'/'.self::INVOICE;
+        $this->assertSame(401,$kernel->handle(new Request('GET',$nativePath))->status());
+        $nativeDetail=$kernel->handle(new Request('GET',$nativePath,['authorization'=>'Bearer '.$session[1]]));
+        $this->assertSame(200,$nativeDetail->status());
+        $this->assertSame(25000,json_decode($nativeDetail->body(),true)['invoice']['payable_rials']);
+        $this->assertStringNotContainsString('public_token',$nativeDetail->body());
+        $this->assertStringNotContainsString('profit',strtolower($nativeDetail->body()));
+        $otherPath='/v1/customer/invoices/'.self::STORE.'/cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+        $this->assertSame(404,$kernel->handle(new Request('GET',$otherPath,['authorization'=>'Bearer '.$session[1]]))->status());
+        $gateConfig=$config; $gateConfig['public_legal_copy_required']=true;
+        $gateKernel=new Kernel($gateConfig,$gateway,$clock,$auth);
+        $this->assertSame(503,$gateKernel->handle(new Request('GET',$nativePath,['authorization'=>'Bearer '.$session[1]]))->status());
         $cookie2 = ['cookie'=>'kandoo_session='.$session[1]];
         $list = $kernel->handle(new Request('GET','/account/invoices',$cookie2));
         $this->assertSame(200, $list->status()); $this->assertStringContainsString('TEST Store', $list->body());
@@ -74,6 +101,7 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $this->assertSame('INVALID', $auth->verify($second['challenge_id'], $sms->codes[1], $csrf[1])['status']);
         $locked=$kernel->handle(new Request('POST','/account/verify',['cookie'=>$cookie],[],http_build_query(['csrf'=>$csrf[1], 'challenge'=>$second['challenge_id'], 'code'=>$sms->codes[1]])));
         $this->assertSame(429,$locked->status()); $this->assertStringContainsString('پشتیبانی تلگرام',$locked->body());
+        $this->assertStringContainsString('class="locked-state"', $locked->body());
         $this->assertFalse($auth->challengeLocked($second['challenge_id'],str_repeat('Z',43)));
         $this->assertSame('CONFLICT', $auth->issue('+989120000002', 'TEST-second', $csrf[1])['status']);
         $this->assertSame('TELEGRAM', $auth->issue(self::PHONE, 'TEST-third', $csrf[1])['status']);
@@ -103,6 +131,77 @@ final class CustomerFlowDatabaseTest extends DbTestCase
         $clock->set(1767398400);
         $this->assertSame('INVALID', $auth->issue('+989120000004','TEST-new-day',$csrf[1])['status']);
         foreach (['cloud_customer_sessions', 'cloud_otp_challenges', 'cloud_sms_announcements', 'cloud_customer_phones', 'cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
+    }
+
+    public function testNativeOtpListDetailLogoutAndDeviceBinding(): void
+    {
+        $db=$this->db(); $pdo=$db->pdo(); $gateway=new MariaDbGateway($db); $gateway->reset();
+        foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_customer_phones','cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
+        $gateway->seedStore(['store_id'=>self::STORE,'active_writer_device_id'=>self::STORE,'active_writer_epoch'=>1,'accepted_through_seq'=>0,'entry_count'=>0,'head_entry_hash'=>null,'projection_version'=>0]);
+        $gateway->seedProjection(['public_token'=>'TESTNATIVETOKEN12345678901','public_token_hash'=>hash('sha256','TESTNATIVETOKEN12345678901'),'digital_invoice_id'=>self::INVOICE,'invoice_id'=>self::INVOICE,'store_id'=>self::STORE,'store_name'=>'TEST Store','display_number'=>7,'lifecycle_status'=>'ISSUED','issued_at'=>'2026-01-02 03:04:05','issued_payload'=>'{}','issued_content_sha256'=>str_repeat('a',64),'payable_rials'=>25000,'line_items'=>'[]','customer_phone'=>self::PHONE]);
+        $q=$pdo->prepare('INSERT INTO cloud_sms_announcements (announcement_id,store_id,invoice_id,phone,delivered_at) VALUES (?,?,?,?,?)');
+        $q->execute([self::ANNOUNCEMENT,self::STORE,self::INVOICE,self::PHONE,1767323045]);
+        $settings=['enabled'=>true,'code_length'=>6,'code_ttl_seconds'=>300,'max_attempts'=>3,'codes_per_announcement'=>2,'issue_window_seconds'=>900,'max_issues_per_window'=>3,'session_ttl_seconds'=>3600,'otp_pepper'=>'TEST-only-synthetic-otp-pepper-0123456789','telegram_url'=>null];
+        $transport=new class implements OtpTransport { public string $code=''; public function sendCode(string $phone,string $code): bool { $this->code=$code; return true; } };
+        $clock=new FixedClock(1767323045); $auth=new CustomerAuth($settings,$db,$clock,$transport); $config=self::$config; $config['customer_auth']=$settings;
+        $kernel=new Kernel($config,$gateway,$clock,$auth); $device=str_repeat('Q',43);
+        // The same language-neutral proposed vectors can be replayed by C-92.
+        $vectors=json_decode(file_get_contents(__DIR__.'/../../docs/vectors/customer-api-v1-2-proposed.json'),true,512,JSON_THROW_ON_ERROR);
+        $vars=$vectors['setup'];
+        $resolve=static function ($value) use (&$resolve, &$vars) {
+            if (is_array($value)) { return array_map($resolve,$value); }
+            if (!is_string($value)) { return $value; }
+            return preg_replace_callback('/\{\{([a-z_]+)\}\}/',static function ($match) use (&$vars) {
+                if (!isset($vars[$match[1]]) || !is_string($vars[$match[1]])) { throw new \RuntimeException('Missing vector variable: '.$match[1]); }
+                return $vars[$match[1]];
+            },$value);
+        };
+        try {
+            foreach ($vectors['steps'] as $step) {
+                $vars['otp']=$transport->code;
+                $headers=$resolve($step['headers']);
+                $body=isset($step['body']) ? json_encode($resolve($step['body']),JSON_THROW_ON_ERROR) : '';
+                $response=$kernel->handle(new Request($step['method'],$resolve($step['path']),$headers,[],$body,null,'192.0.2.1'));
+                $this->assertSame($step['expect']['http'],$response->status(),$step['id']);
+                $this->assertSame('no-store',$response->header('Cache-Control'),$step['id']);
+                $actual=json_decode($response->body(),true,512,JSON_THROW_ON_ERROR);
+                $this->assertVectorSubset($resolve($step['expect']['body']),$actual,$step['id']);
+                foreach (($step['expect']['capture'] ?? []) as $name=>$field) {
+                    $this->assertIsString($actual[$field] ?? null,$step['id'].' capture '.$field);
+                    $vars[$name]=$actual[$field];
+                }
+            }
+            $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43}$/D',$vars['session']);
+            $this->assertSame(1,(int)$pdo->query('SELECT code_issues FROM cloud_sms_announcements')->fetchColumn());
+        } finally {
+            foreach (['cloud_customer_sessions','cloud_otp_challenges','cloud_sms_announcements','cloud_customer_phones','cloud_otp_idempotency_locks'] as $table) { $pdo->exec('DELETE FROM '.$table); }
+            $gateway->reset();
+        }
+    }
+
+    /** Objects are required subsets; arrays remain exact, including order and count. */
+    private function assertVectorSubset($expected, $actual, string $label): void
+    {
+        if (is_array($expected) && $expected !== [] && array_keys($expected) !== range(0,count($expected)-1)) {
+            $this->assertIsArray($actual,$label);
+            foreach ($expected as $key=>$value) {
+                $this->assertArrayHasKey($key,$actual,$label);
+                $this->assertVectorSubset($value,$actual[$key],$label.'.'.$key);
+            }
+            return;
+        }
+        $this->assertSame($expected,$actual,$label);
+    }
+
+    public function testAdminRateBucketIsAtomicAndPrunableOnMariaDb(): void
+    {
+        $gateway=new MariaDbGateway($this->db());
+        $key=hash('sha256','TEST-admin-peer-'.bin2hex(random_bytes(16)));
+        $this->assertTrue($gateway->rateHit('admin',$key,1000,1));
+        $this->assertFalse($gateway->rateHit('admin',$key,1000,1));
+        $this->assertTrue($gateway->rateHit('admin',$key,1060,1));
+        $gateway->pruneRateBuckets(1120);
+        $this->assertSame(0,(int)$this->db()->pdo()->query("SELECT COUNT(*) FROM admin_rate_buckets WHERE window_start < 1120")->fetchColumn());
     }
 
     public function testIpBucketIsAtomicAndIndependentByAction(): void

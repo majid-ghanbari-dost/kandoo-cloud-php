@@ -24,9 +24,10 @@ final class DemoSms implements OtpTransport
         if (preg_match('/^[0-9]{6,9}$/D',$code)!==1) { return false; }
         return $this->write($phone,'otp','کد ورود نمایشی کندو: '.$code);
     }
-    public function sendAnnouncement(string $phone): bool
+    public function sendAnnouncement(string $phone, string $publicToken): bool
     {
-        return $this->write($phone,'announcement','فاکتور نمایشی در کندو ثبت شد. '.$this->config['base_url'].'/account/login');
+        if (!RandomToken::hasValidShape($publicToken)) { return false; }
+        return $this->write($phone,'announcement','فاکتور نمایشی در کندو ثبت شد. '.rtrim($this->config['base_url'], '/').'/i/'.$publicToken);
     }
     public function lastReceipt(): ?string { return $this->receipt; }
     private function write(string $phone,string $kind,string $body): bool
