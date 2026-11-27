@@ -25,6 +25,14 @@ with MariaDB 10.6, throttle off — local latency only, never E1 capacity).
 Tags `o17-P-31` and `o17-P-34` -> `444d48ed5e947d108ef2152f6bbee8bb84221e31`; full suite green
 on PHP 8.1 and 8.5 with MariaDB 10.6 and zero skipped tests
 (https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45966546175).
+
+**MERGED (2026-11-27, PM-31):** PR #5 was retargeted to `main` — with `main` merged into this
+branch first, verified as a direct ancestor (no force push, no history rewrite) — and merged as
+merge commit `96f449b`; `main` CI green in
+https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45994819620. Because this
+branch also carried the lane head `18a0558`, that content is on `main` now; PR #3 has since
+advanced to `bb97961` (an ancestor check confirmed no rewrite) and its newer commits land in a
+follow-up merge. Next PHP-B session: pull `main`, do not reopen or re-implement P-31/P-34.
 CI note: `.github/workflows/ci.yml` now also triggers on this lane branch and on `o16-*`/`o17-*`
 tags, and runs the one synthetic customer-read load step on PHP 8.1 (workflow-touching PR).
 
