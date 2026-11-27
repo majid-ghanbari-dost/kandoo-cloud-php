@@ -135,6 +135,36 @@ jobs:
           python3 -c 'import socket,time; s=socket.socket(); [(time.sleep(.1)) for _ in range(100) if s.connect_ex(("127.0.0.1",18083)) != 0]; s.close()'
           dotnet run --project tests/HubReplay/HubReplay.csproj -p:HubProject="$GITHUB_WORKSPACE/.hub-p23/src/Kandoo.Hub/Kandoo.Hub.csproj" -- "$tmp/batch.json"
           php tests/HubReplay/check-pages.php
+          php tests/visual/p36-http-setup.php "$tmp/visual.json"
+          npm install --prefix "$tmp" --no-save --no-audit --no-fund playwright-core@1.51.1
+          export NODE_PATH="$tmp/node_modules"
+          export P36_CHROME="$(command -v google-chrome || command -v chromium-browser || command -v chromium)"
+          test -n "$P36_CHROME"
+          node tests/visual/p36-http-screenshots.cjs "$tmp/visual.json" "$GITHUB_WORKSPACE/p36-artifacts"
+
+      - name: P-36 synthetic normal HTTP screenshot
+        if: matrix.php == '8.1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: p36-synthetic-normal
+          path: p36-artifacts/normal.png
+          if-no-files-found: error
+
+      - name: P-36 synthetic empty HTTP screenshot
+        if: matrix.php == '8.1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: p36-synthetic-empty
+          path: p36-artifacts/empty.png
+          if-no-files-found: error
+
+      - name: P-36 synthetic locked HTTP screenshot
+        if: matrix.php == '8.1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: p36-synthetic-locked
+          path: p36-artifacts/locked.png
+          if-no-files-found: error
 
       - name: Local in-process health load smoke test
         run: php tools/dev/load-health.php

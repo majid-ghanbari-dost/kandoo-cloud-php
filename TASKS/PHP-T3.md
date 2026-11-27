@@ -41,6 +41,7 @@ Run a secrets scan over the WHOLE repo AND ITS FULL HISTORY (gitleaks-style, or 
 PM-06/PM-17 real-data restriction is LIFTED by the owner's 2026-11-27 certification (all project data is fictional); honesty labeling replaces it — generated fixtures clearly marked synthetic/fictional, kept inside `tests/`. Workflow-touching PRs declare it in the FIRST body line. Tags `o17-<task>`; never move existing tags.
 
 ---
+## Status: IN PROGRESS — manager ruled scan findings benign; PR #3 ready for review; P-36 PHP/MariaDB and synthetic outbox HTTP CI green at 465ace1 (45782721083 / 45782730998); CI screenshot artifacts still outstanding; no stage green or tag.
 **Status:** DISPATCHED (T0 2026-11-25) — MANAGER UPDATE 2026-11-27: scan candidates RULED BENIGN (manager re-read all five commits; synthetic test fixtures, no rotation), PUSH STOP LIFTED, PR #3 OUT OF DRAFT; owner speed order in force (Decision 30 / R-014) — push P-36, start CI, then the chain above with no idle; report run URLs one line per green stage.
 
 **PHP-B lane (2026-11-27):** session branch `arena/c079209e-kandoo-cloud-php` merged the PR #3 lane head and delivered the PHP-B section (P-31 finish, OTP session continuation, P-34 local read throttle + load, restore round-trip) in **PR #5** (base = lane branch): https://github.com/majid-ghanbari-dost/kandoo-cloud-php/pull/5 — tags `o17-P-31` / `o17-P-34` -> `444d48e`; green run 45966546175 (PHP 8.1/8.5, MariaDB 10.6, zero skips). PR #3 is out of draft (verified 2026-11-27); PR #5 is based on that lane head.
