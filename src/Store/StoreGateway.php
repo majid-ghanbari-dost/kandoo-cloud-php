@@ -29,7 +29,7 @@ interface StoreGateway
     /** @return array<string, mixed>|null */
     public function findDevice(string $deviceId): ?array;
 
-    /** Return a unique store-scoped digest match, or null for none/ambiguous. @return array<string, mixed>|null */
+    /** Return a unique store-scoped digest match, or null for none/ambiguous/revoked. @return array<string, mixed>|null */
     public function findDeviceByStoreAndSecretHash(string $storeId, string $secretHash): ?array;
 
     public function touchDeviceAuthenticated(string $deviceId, string $at): void;
@@ -99,4 +99,30 @@ interface StoreGateway
 
     /** Cron pruning: drop bucket rows whose window ended before the given timestamp. */
     public function pruneRateBuckets(int $olderThanWindowStart): void;
+
+    // ── Administration v2 (ORDER 16 P-32) ──────────────────────────────────────
+
+    /** All store rows for the admin overview page. @return list<array<string, mixed>> */
+    public function listStores(): array;
+
+    /** All replication-device rows, revoked ones included; never exposes secret digests. @return list<array<string, mixed>> */
+    public function listDevices(): array;
+
+    /**
+     * Revoke a replication device: the first call stamps revoked_at/reason and appends a
+     * durable 'device_revoked' admin event atomically; later calls return false.
+     */
+    public function revokeDevice(string $deviceId, string $reason, string $at): bool;
+
+    /** SMS delivery-request counts by state. @return array{total: int, by_state: array<string, int>} */
+    public function smsDeliveryStatistics(): array;
+
+    /** Newest SMS cost-log entries (bounded). @return list<array<string, mixed>> */
+    public function smsCostLog(int $limit): array;
+
+    /** Per-day cost totals, newest first. @return list<array{cost_date: string, units: int, cost: string}> */
+    public function smsCostDailyTotals(int $days): array;
+
+    /** Insert one SMS cost-log entry (write side is wired with P-33). @param array<string, mixed> $row */
+    public function insertSmsCostEntry(array $row): void;
 }

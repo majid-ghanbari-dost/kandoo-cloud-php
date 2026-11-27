@@ -1,0 +1,9 @@
+# P-32 — وضعیت مرحله‌ای
+
+| تسک | شاخه | SHA کامل | CI | نتیجه | فایل‌ها |
+|---|---|---|---|---|---|
+| P-32 | `arena/f729618f-kandoo-cloud-php` | NOT-VERIFIED | NOT-VERIFIED | NOT STARTED | ندارد |
+
+صفحه مدیریت v2 و revoke دستگاه و گزارش هزینه هنوز پیاده‌سازی/آزموده نشده‌اند.
+
+به‌روزرسانی: پیاده‌سازی اولیه v2 در `823f44f`, `1945003`, `8a693b3` اضافه شده است. اجرای [45129326294](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45129326294) به علت فهرست ناقص migration در تست قرمز بود. بازبینی PHP-T1 یک نقص امنیتی ابطال در مسیر legacy یافت: با وجود لغو، شناسه و secret قدیمی هنوز اعتبار داشتند؛ اصلاح و تست مسیر Bearer و legacy روی حافظه و MariaDB در `96f96d96d9e73af75ce7a5a38a2fd889069868cb` انجام شد؛ [CI شاخه 45167797151](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45167797151) و [CI PR 45167808140](https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45167808140) سبز. درخواست‌های در حال اجرا هنگام ابطال هنوز ارزیابی نشده‌اند. لاگ هزینه اکنون فقط انبار داده/نمایش دارد و به جریان ارسال متصل نیست؛ محدودسازی brute force مدیر و سایر بررسی‌های امنیتی هنوز لازم‌اند. بنابراین PARTIAL است.

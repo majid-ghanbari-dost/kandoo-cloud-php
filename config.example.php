@@ -50,7 +50,13 @@ return [
     // Customer auth remains disabled until P-08 configures a real delivery adapter.
     // When enabled, provide all numerical policy values and an independent high-entropy
     // otp_pepper exclusively in config.php outside the repository. Telegram is optional.
-    'customer_auth' => ['enabled' => false],
+    // Optional read throttles (defaults shown; 0 disables one of them):
+    //   read_ip_limit_per_minute      — customer API/page reads per direct peer address
+    //   read_session_limit_per_minute — reads per customer session (bounds a stolen Bearer)
+    // Both are per one-minute window, database-backed, and only the direct peer address is
+    // trusted (behind a reverse proxy every client collapses into one bucket).
+    'customer_auth' => ['enabled' => false,
+        'read_ip_limit_per_minute' => 120, 'read_session_limit_per_minute' => 60],
 
     // Faraz is disabled by default; credentials and pattern identifiers belong in
     // the external config only. Dry mode is permitted only in development/testing.
@@ -60,8 +66,13 @@ return [
     'retention' => ['otp_challenge_seconds'=>86400, 'expired_session_seconds'=>2592000,
         'idempotency_seconds'=>2592000, 'undeliverable_sms_seconds'=>7776000],
 
+    // Optional operator-configured estimates only; disabled means no invented cost.
+    'sms_cost' => ['enabled' => false],
+
     // ── Rate limits (fixed 1-minute windows, DB-backed) ──────────────────────
     // Public invoice reads per client IP (§6.2). Default 60.
+    // All admin requests share a bounded direct-peer bucket; cannot be disabled.
+    'admin_rate_limit_per_minute' => 10,
     'public_rate_limit_per_minute' => 60,
     // Ingest batches per store (§5.4 note, UNCONFIRMED U5). 0 disables. Default 120.
     'ingest_rate_limit_per_minute' => 120,

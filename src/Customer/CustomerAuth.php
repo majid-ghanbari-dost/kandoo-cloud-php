@@ -11,7 +11,7 @@ use Kandoo\Cloud\Support\Uuid;
 /** Database-backed OTP operations. All state transitions that affect limits lock rows. */
 final class CustomerAuth
 {
-    public function __construct(private array $config, private Database $db, private Clock $clock, private ?OtpTransport $transport = null) {}
+    public function __construct(private array $config, private Database $db, private Clock $clock, private ?OtpTransport $transport = null, private ?\Kandoo\Cloud\Sms\SmsCostRecorder $cost = null) {}
 
     /** @return array{status:string,challenge_id?:string,expires_at?:int} */
     public function issue(string $phone, string $key, string $device): array
@@ -60,14 +60,16 @@ final class CustomerAuth
             if ($q->fetchColumn() === false) { $pdo->commit(); return ['status'=>'INVALID']; }
             // An invoice is not an announcement. Only an actual successful announcement
             // to this phone, still attached to the same invoice phone, grants a budget.
-            $q = $pdo->prepare('SELECT a.announcement_id FROM cloud_sms_announcements a JOIN public_invoices i ON i.store_id=a.store_id AND i.invoice_id=a.invoice_id AND i.customer_phone=a.phone WHERE a.phone=? AND a.code_issues < ? ORDER BY a.delivered_at, a.announcement_id LIMIT 1 FOR UPDATE');
-            $q->execute([$phone, $this->config['codes_per_announcement']]); $announcement = $q->fetchColumn();
-            if ($announcement === false) { $pdo->commit(); return ['status' => 'TELEGRAM']; }
+            $q = $pdo->prepare('SELECT a.announcement_id,a.store_id FROM cloud_sms_announcements a JOIN public_invoices i ON i.store_id=a.store_id AND i.invoice_id=a.invoice_id AND i.customer_phone=a.phone WHERE a.phone=? AND a.code_issues < ? ORDER BY a.delivered_at, a.announcement_id LIMIT 1 FOR UPDATE');
+            $q->execute([$phone, $this->config['codes_per_announcement']]); $announcementRow = $q->fetch();
+            if ($announcementRow === false) { $pdo->commit(); return ['status' => 'TELEGRAM']; }
+            $announcement = $announcementRow['announcement_id'];
             $id = self::uuid(); $code = OtpSecrets::generateCode($this->config['code_length']);
             $expires = $now + $this->config['code_ttl_seconds'];
             $q = $pdo->prepare('UPDATE cloud_sms_announcements SET code_issues=code_issues+1 WHERE announcement_id=?'); $q->execute([$announcement]);
             $q = $pdo->prepare('INSERT INTO cloud_otp_challenges (challenge_id, phone, announcement_id, idempotency_hash, code_mac, created_at, expires_at, delivery_state, device_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $q->execute([$id, $phone, $announcement, $keyHash, OtpSecrets::codeMac($this->config['otp_pepper'], $id, $code), $now, $expires, 'pending', $deviceHash]);
+            $this->cost?->reserve($pdo, $id, $announcementRow['store_id'], 'otp', $now);
             $q = $pdo->prepare('UPDATE cloud_otp_idempotency_locks SET created_at=?,phone=?,device_hash=?,challenge_id=?,expires_at=?,delivery_state=? WHERE idempotency_hash=?');
             $q->execute([$now,$phone,$deviceHash,$id,$expires,'pending',$keyHash]);
             $pdo->commit();
@@ -132,6 +134,19 @@ final class CustomerAuth
         $q = $this->db->pdo()->prepare('SELECT phone FROM cloud_customer_sessions WHERE token_hash=? AND expires_at>?');
         $q->execute([OtpSecrets::sessionHash($token), $this->clock->nowUnix()]); $value = $q->fetchColumn();
         return $value === false ? null : (string) $value;
+    }
+
+    /**
+     * Expiry of a live remembered session, or null when the token is unknown or expired.
+     * Lets a native client validate a stored Bearer on start-up without reading invoice data,
+     * and returns nothing about the phone (no new enumeration surface).
+     */
+    public function sessionExpiry(string $token): ?int
+    {
+        if (!($this->config['enabled'] ?? false) || preg_match('/^[A-Za-z0-9_-]{43}$/D', $token) !== 1) { return null; }
+        $q = $this->db->pdo()->prepare('SELECT expires_at FROM cloud_customer_sessions WHERE token_hash=? AND expires_at>?');
+        $q->execute([OtpSecrets::sessionHash($token), $this->clock->nowUnix()]); $value = $q->fetchColumn();
+        return $value === false ? null : (int) $value;
     }
 
     /** Revoke the presented remembered-session token; raw credentials are never stored. */

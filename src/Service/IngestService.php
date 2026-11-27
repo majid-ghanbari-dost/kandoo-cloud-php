@@ -78,7 +78,7 @@ final class IngestService
                 $secret = $request->header('x-kandoo-device-secret');
                 $device = $id === null ? null : $this->gateway->findDevice($id);
             }
-            if ($device === null || !is_string($secret) || $secret === '' || $routeId === null
+            if ($device === null || ($device['revoked_at'] ?? null) !== null || !is_string($secret) || $secret === '' || $routeId === null
                 || $device['store_id'] !== $routeId
                 || !hash_equals($device['secret_sha256'], hash('sha256', $secret))) {
                 return $this->envelope(Envelopes::unauthenticated());

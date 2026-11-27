@@ -39,6 +39,10 @@ final class DeviceBearerDatabaseTest extends DbTestCase
             $this->assertSame(400, $request(['authorization'=>'Bearer '.$secret])->status());
             $this->assertSame(400, $request(['x-kandoo-device-id'=>$device,'x-kandoo-device-secret'=>$secret])->status());
             $this->assertTrue($gateway->findDevice($device)['verified']);
+            $this->assertTrue($gateway->revokeDevice($device, 'TEST-revoked', '2026-01-02 00:00:00'));
+            $this->assertSame(401, $request(['authorization'=>'Bearer '.$secret])->status());
+            $this->assertSame(401, $request(['x-kandoo-device-id'=>$device,'x-kandoo-device-secret'=>$secret])->status());
+            $gateway->insertDevice(RandomToken::uuidV4(), $store, hash('sha256', $secret), '2026-01-01 00:00:00');
             $gateway->insertDevice(RandomToken::uuidV4(), $store, hash('sha256', $secret), '2026-01-01 00:00:00');
             $this->assertSame(401, $request(['authorization'=>'Bearer '.$secret])->status(), 'ambiguous device secret must fail closed');
         } finally {
