@@ -2,6 +2,38 @@
 
 This document is maintained under standing order SO-01.
 
+## MVP-1 / ORDER 17 — PHP-B lane (2026-11-27)
+
+PHP-B ("customer API, OTP, security, load, host kit") continues from the ORDER 16 lane head
+`arena/f729618f-kandoo-cloud-php` (PR #3, **still a DRAFT**) because the P-31/OTP work the
+dispatch names as the continuation point (`cf52405`) lives on that branch and nowhere else.
+The PHP-B session branch `arena/c079209e-kandoo-cloud-php` therefore merged that lane head
+FIRST (`5f0aea7`) and opened **PR #5 against the lane branch**, so its diff is the PHP-B delta
+only. If PR #3 merges to `main` first, PR #5 retargets to `main` automatically and stays small.
+
+Delivered on PR #5: `GET /v1/customer/session` proposal-only resume check (validates a stored
+Bearer on next start-up, returns `{status,expires_at}`, never phone/token/invoice); the
+customer read surface (native list/detail, `/account/invoices`, account detail, session
+resume) now carries an INDEPENDENT fixed-window budget per direct peer (default 120/min) and
+per session (default 60/min), keyed by HMAC digests in `customer_read_rate_buckets`
+(migration 0013), 429 `RATE_LIMITED` + `Retry-After`, denied requests not counted, 0 disables;
+`RestoreRoundTripDatabaseTest` proves backup -> isolated restore -> the pre-backup Bearer still
+lists the same invoice through `Kernel`; `tools/dev/load-customer-read.py` measures the
+customer read path locally (200 requests, concurrency 25, 0 errors, p95 44.94 ms on PHP 8.1
+with MariaDB 10.6, throttle off — local latency only, never E1 capacity).
+
+Tags `o17-P-31` and `o17-P-34` -> `444d48ed5e947d108ef2152f6bbee8bb84221e31`; full suite green
+on PHP 8.1 and 8.5 with MariaDB 10.6 and zero skipped tests
+(https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/45966546175).
+CI note: `.github/workflows/ci.yml` now also triggers on this lane branch and on `o16-*`/`o17-*`
+tags, and runs the one synthetic customer-read load step on PHP 8.1 (workflow-touching PR).
+
+Still NOT done and not claimed: real Android/device E2E of the customer API (PENDING-CROSS-LANE
+with C#/PO), PO-OWN-1..4 (host, domain/TLS, real SMS, provider pattern approval), penetration
+test, and any production capacity statement. Frozen contract, v1.1 schemas and tags stay
+untouched; the two new API behaviours are recorded as PROPOSAL in
+`docs/CONTRACT-ADDENDUM-V1-2-CUSTOMER-PROPOSAL.md`.
+
 ## PHP-T3 P-36 — CI restored, not stage green
 
 Opened branch CI 45782395782 and PR CI 45782403192 at a77824c; both PHP 8.1/8.5 MariaDB, golden replay, Hub C-83 synthetic transport HTTP smoke, PHPUnit artifacts passed. No CI screenshot artifacts, so stage 1 not green/tagged. Demo-only local outbox `/i/<public_token>` link and CI HubReplay script to follow it over actual HTTP passed at 465ace1a3ba5b33caa9f66825b1a77f99d969eb0 in branch CI 45782721083 and PR CI 45782730998; outbox contains a token and must remain private. This is Cloud's synthetic outbox, not proof of Hub outbox or Windows/phone. Previous prohibition on editing workflow means screenshot artifact generation needs authorization or an approved alternative. PR #3 draft, stage 2 not started.
