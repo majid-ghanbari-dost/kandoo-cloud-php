@@ -1,6 +1,6 @@
 {
   "status": "PROPOSED — not an accepted contract",
-  "description": "Synthetic sequential scenarios; placeholders refer only to test-generated values. JSON object fields in expect.body are required subsets; arrays and scalar values compare exactly.",
+  "description": "Synthetic sequential scenarios; placeholders refer only to test-generated values. JSON object fields in expect.body are required subsets; arrays and scalar values compare exactly. Replays run with the customer read throttle disabled so the scenarios stay deterministic; the independent IP/session read limit (429 RATE_LIMITED + Retry-After) is proven separately in tests/Unit/CustomerReadLimitDatabaseTest.php.",
   "setup": {
     "phone": "+989120000001",
     "device": "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQ",
@@ -23,8 +23,11 @@
     {"id":"list", "method":"GET", "path":"/v1/customer/invoices", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":200,"body":{"stores":[{"store_id":"{{store}}","store_name":"TEST Store","invoices":[{"invoice_id":"{{invoice}}","display_number":7}]}]}}},
     {"id":"detail", "method":"GET", "path":"/v1/customer/invoices/{{store}}/{{invoice}}", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":200,"body":{"invoice":{"store_id":"{{store}}","invoice_id":"{{invoice}}","display_number":7,"payable_rials":25000,"line_items":[]}}}},
     {"id":"foreign-or-unknown", "method":"GET", "path":"/v1/customer/invoices/{{store}}/{{foreign_invoice}}", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":404,"body":{"status":"NOT_FOUND"}}},
+    {"id":"session-resume", "method":"GET", "path":"/v1/customer/session", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":200,"body":{"status":"VALID"}}},
     {"id":"logout", "method":"DELETE", "path":"/v1/customer/session", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":200,"body":{"status":"REVOKED"}}},
     {"id":"revoked-session", "method":"GET", "path":"/v1/customer/invoices", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":401,"body":{"status":"UNAUTHENTICATED"}}},
+    {"id":"session-resume-after-revoke", "method":"GET", "path":"/v1/customer/session", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":401,"body":{"status":"UNAUTHENTICATED"}}},
+
     {"id":"logout-replay", "method":"DELETE", "path":"/v1/customer/session", "headers":{"authorization":"Bearer {{session}}"}, "expect":{"http":401,"body":{"status":"UNAUTHENTICATED"}}}
   ]
 }

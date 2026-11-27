@@ -30,6 +30,7 @@ final class MigratorTest extends DbTestCase
         $this->assertContains('0010_cron_heartbeat.sql', $applied);
         $this->assertContains('0011_admin_v2.sql', $applied);
         $this->assertContains('0012_admin_rate_limit.sql', $applied);
+        $this->assertContains('0013_customer_read_rate_limits.sql', $applied);
         $this->assertSame([], $migrator->pending());
         $this->assertSame([], $migrator->migrate()); // re-run is a no-op
     }
@@ -40,7 +41,7 @@ final class MigratorTest extends DbTestCase
         $tables = array_map('strval', $rows ?: []);
         foreach ([
             'schema_migrations', 'cloud_stores', 'cloud_entries', 'cloud_batches',
-            'public_invoices', 'public_rate_buckets', 'ingest_rate_buckets', 'cloud_replication_devices', 'cloud_admin_state', 'cloud_admin_events', 'cloud_customer_phones', 'cloud_sms_announcements', 'cloud_otp_challenges', 'cloud_customer_sessions', 'cloud_otp_idempotency_locks', 'cloud_sms_delivery_requests',
+            'public_invoices', 'public_rate_buckets', 'ingest_rate_buckets', 'cloud_replication_devices', 'cloud_admin_state', 'cloud_admin_events', 'cloud_customer_phones', 'cloud_sms_announcements', 'cloud_otp_challenges', 'cloud_customer_sessions', 'cloud_otp_idempotency_locks', 'cloud_sms_delivery_requests', 'customer_read_rate_buckets',
         ] as $table) {
             $this->assertContains($table, $tables);
         }

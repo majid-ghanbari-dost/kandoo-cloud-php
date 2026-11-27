@@ -63,9 +63,25 @@ final class CustomerPages
             return new Response(303, ['Location' => '/account/login', 'Cache-Control' => 'no-store', 'Set-Cookie' => 'kandoo_session=; Path=/account; Max-Age=0'.$this->cookieSecurity().' HttpOnly; SameSite=Strict']);
         }
         if ($path === '/account/telegram' && $method === 'GET') { return $this->telegram(); }
+        // Session resume for native clients: validates a stored Bearer without exposing invoices,
+        // the phone or any token material. Same independent read throttle as the lists.
+        if ($path === '/v1/customer/session' && $method === 'GET') {
+            if (!$this->allowReadIp($request)) { return $this->tooMany(true); }
+            $token = $this->bearer($request);
+            $expires = $this->auth->sessionExpiry($token);
+            if ($expires === null) { return $this->jsonError(401, 'UNAUTHENTICATED'); }
+            if (!$this->allowReadSession($token)) { return $this->tooMany(true); }
+            return Response::json(200, ['status' => 'VALID', 'expires_at' => $expires], ['Cache-Control' => 'no-store']);
+        }
+        $nativeRead = $method === 'GET' && ($path === '/v1/customer/invoices' || preg_match('#^/v1/customer/invoices/([^/]+)/([^/]+)$#D', $path) === 1);
+        $pageRead = $method === 'GET' && ($path === '/account/invoices' || preg_match('#^/account/invoices/([^/]+)/([^/]+)$#D', $path) === 1);
+        // Independent direct-peer read budget: bounds token guessing and DB work before any lookup.
+        if (($nativeRead || $pageRead) && !$this->allowReadIp($request)) { return $this->tooMany($nativeRead); }
         if ($method === 'GET' && ($path === '/account/invoices' || preg_match('#^/account/invoices/([^/]+)/([^/]+)$#D', $path, $m) === 1)) {
-            $phone = $this->auth->phoneForToken($this->cookie($request, 'kandoo_session'));
+            $sessionCookie = $this->cookie($request, 'kandoo_session');
+            $phone = $this->auth->phoneForToken($sessionCookie);
             if ($phone === null) { return new Response(303, ['Location' => '/account/login', 'Cache-Control' => 'no-store']); }
+            if (!$this->allowReadSession($sessionCookie)) { return $this->tooMany(false); }
             if ($path === '/account/invoices') {
                 $html = '';
                 $groups = [];
@@ -93,18 +109,17 @@ final class CustomerPages
             return Response::html(200, Html::renderCustomerInvoicePage($row), ['Cache-Control' => 'no-store', 'Referrer-Policy' => 'no-referrer']);
         }
         if ($path === '/v1/customer/session' && $method === 'DELETE') {
-            $authorization=$request->header('authorization') ?? '';
-            $token=preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD',$authorization,$match) === 1 ? $match[1] : '';
+            $token = $this->bearer($request);
             if ($this->auth->phoneForToken($token) === null) { return $this->jsonError(401,'UNAUTHENTICATED'); }
             $this->auth->revokeSession($token);
             return Response::json(200, ['status'=>'REVOKED'], ['Cache-Control'=>'no-store']);
         }
         // Native clients use the same random, expiring, revocable customer session as the browser.
         if ($method === 'GET' && ($path === '/v1/customer/invoices' || preg_match('#^/v1/customer/invoices/([^/]+)/([^/]+)$#D', $path, $nativeInvoice) === 1)) {
-            $authorization = $request->header('authorization') ?? '';
-            $token = preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD', $authorization, $match) === 1 ? $match[1] : '';
+            $token = $this->bearer($request);
             $phone = $this->auth->phoneForToken($token);
             if ($phone === null) { return $this->jsonError(401, 'UNAUTHENTICATED'); }
+            if (!$this->allowReadSession($token)) { return $this->tooMany(true); }
             if ($path !== '/v1/customer/invoices') {
                 $row = $this->auth->invoice($phone, $nativeInvoice[1], $nativeInvoice[2]);
                 if ($row === null) { return $this->jsonError(404, 'NOT_FOUND'); }
@@ -153,12 +168,54 @@ final class CustomerPages
                 return Response::json($status, $out, ['Cache-Control' => 'no-store']);
             }
             $out = $this->auth->verify($m[1], is_string($input['code'] ?? null) ? $input['code'] : '', $request->header('x-kandoo-device') ?? '');
-            return Response::json($out['status'] === 'OK' ? 200 : 400, $out, ['Cache-Control' => 'no-store']);
+            $status = match ($out['status']) { 'OK' => 200, 'UNAVAILABLE' => 503, default => 400 };
+            return Response::json($status, $out, ['Cache-Control' => 'no-store']);
         }
         return Response::emptyBody(404);
     }
 
     private function cookieSecurity(): string { return $this->demo ? ';' : '; Secure;'; }
+
+    /** Bearer parser shared by every native customer route (43-char unpadded base64url). */
+    private function bearer(Request $request): string
+    {
+        $authorization = (string) ($request->header('authorization') ?? '');
+        return preg_match('/^Bearer ([A-Za-z0-9_-]{43})$/iD', $authorization, $match) === 1 ? $match[1] : '';
+    }
+
+    /**
+     * Direct-peer read budget for the customer surface (P-34). 0 disables it, matching the
+     * `public_rate_limit_per_minute` convention. Only the direct peer address is trusted —
+     * forwarded headers are not read, so a proxy collapses to one bucket (documented limit).
+     */
+    private function allowReadIp(Request $request): bool
+    {
+        $limit = (int) ($this->config['read_ip_limit_per_minute'] ?? 120);
+        if ($limit < 1 || $this->gateway === null || $this->clock === null) { return true; }
+        $peer = $request->clientIp() !== '' ? $request->clientIp() : 'unknown';
+        $key = 'ip:'.$peer;
+        return $this->gateway->rateHit('customer_read', hash_hmac('sha256', $key, (string) ($this->config['otp_pepper'] ?? '')), intdiv($this->clock->nowUnix(), 60) * 60, $limit);
+    }
+
+    /**
+     * Per-session read budget: a stolen-but-valid Bearer cannot be replayed without limit.
+     * Keyed by a digest of the presented token, so it also stops one peer fanning out over
+     * many sessions while leaving other sessions on the same peer unaffected.
+     */
+    private function allowReadSession(string $token): bool
+    {
+        $limit = (int) ($this->config['read_session_limit_per_minute'] ?? 60);
+        if ($limit < 1 || $this->gateway === null || $this->clock === null) { return true; }
+        $key = 'session:'.$token;
+        return $this->gateway->rateHit('customer_read', hash_hmac('sha256', $key, (string) ($this->config['otp_pepper'] ?? '')), intdiv($this->clock->nowUnix(), 60) * 60, $limit);
+    }
+
+    /** Uniform throttle answer; carries no invoice data and never reveals whether a bucket matched. */
+    private function tooMany(bool $json): Response
+    {
+        if ($json) { return Response::json(429, ['status' => 'RATE_LIMITED'], ['Cache-Control' => 'no-store', 'Retry-After' => '60']); }
+        return $this->page('<p>درخواست‌ها بیش از حد مجاز است؛ کمی بعد دوباره تلاش کنید.</p>', 429, ['Retry-After' => '60']);
+    }
 
     private function allowIp(Request $request, string $scope): bool
     {

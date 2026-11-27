@@ -11,11 +11,14 @@ on:
       - main
       - arena/ae9da477-kandoo-cloud-php
       - arena/f729618f-kandoo-cloud-php
+      - arena/c079209e-kandoo-cloud-php
     tags:
       - 'stable-*'
       - 'w11-*'
       - 'o14-P-*'
       - 'o15-P-*'
+      - 'o16-*'
+      - 'o17-*'
   pull_request:
     branches:
       - main
@@ -138,6 +141,10 @@ jobs:
 
       - name: Concurrent local MariaDB read test (synthetic, not production capacity)
         run: python3 tools/dev/load-mariadb.py --concurrency 50 --requests 100 --github-notice
+
+      - name: Customer API synthetic read load (PHP-B P-34, local only)
+        if: matrix.php == '8.1'
+        run: python3 tools/dev/load-customer-read.py --concurrency 25 --requests 200 --github-notice
 
       - name: Sample self-test (isolated database, no live SMS)
         run: php bin/selftest.php --sample
