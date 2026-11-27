@@ -180,6 +180,12 @@ final class Config
                 if (!is_int($value) || $value < 1) { throw new ConfigException("customer_auth.$name must be a positive integer."); }
                 $customerConfig[$name] = $value;
             }
+            // Independent customer read throttle (P-34). 0 disables, like public_rate_limit_per_minute.
+            foreach (['read_ip_limit_per_minute' => 120, 'read_session_limit_per_minute' => 60] as $name => $default) {
+                $value = $customer[$name] ?? $default;
+                if (!is_int($value) || $value < 0) { throw new ConfigException("customer_auth.$name must be a non-negative integer (0 disables)."); }
+                $customerConfig[$name] = $value;
+            }
             if ($customerConfig['code_length'] < 6 || $customerConfig['code_length'] > 9
                 || $customerConfig['codes_per_announcement'] > 2) {
                 throw new ConfigException('Invalid customer OTP length or announcement cap.');

@@ -136,6 +136,19 @@ final class CustomerAuth
         return $value === false ? null : (string) $value;
     }
 
+    /**
+     * Expiry of a live remembered session, or null when the token is unknown or expired.
+     * Lets a native client validate a stored Bearer on start-up without reading invoice data,
+     * and returns nothing about the phone (no new enumeration surface).
+     */
+    public function sessionExpiry(string $token): ?int
+    {
+        if (!($this->config['enabled'] ?? false) || preg_match('/^[A-Za-z0-9_-]{43}$/D', $token) !== 1) { return null; }
+        $q = $this->db->pdo()->prepare('SELECT expires_at FROM cloud_customer_sessions WHERE token_hash=? AND expires_at>?');
+        $q->execute([OtpSecrets::sessionHash($token), $this->clock->nowUnix()]); $value = $q->fetchColumn();
+        return $value === false ? null : (int) $value;
+    }
+
     /** Revoke the presented remembered-session token; raw credentials are never stored. */
     public function revokeSession(string $token): void
     {

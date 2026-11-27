@@ -50,7 +50,13 @@ return [
     // Customer auth remains disabled until P-08 configures a real delivery adapter.
     // When enabled, provide all numerical policy values and an independent high-entropy
     // otp_pepper exclusively in config.php outside the repository. Telegram is optional.
-    'customer_auth' => ['enabled' => false],
+    // Optional read throttles (defaults shown; 0 disables one of them):
+    //   read_ip_limit_per_minute      — customer API/page reads per direct peer address
+    //   read_session_limit_per_minute — reads per customer session (bounds a stolen Bearer)
+    // Both are per one-minute window, database-backed, and only the direct peer address is
+    // trusted (behind a reverse proxy every client collapses into one bucket).
+    'customer_auth' => ['enabled' => false,
+        'read_ip_limit_per_minute' => 120, 'read_session_limit_per_minute' => 60],
 
     // Faraz is disabled by default; credentials and pattern identifiers belong in
     // the external config only. Dry mode is permitted only in development/testing.
