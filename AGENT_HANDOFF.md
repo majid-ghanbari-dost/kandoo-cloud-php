@@ -5,7 +5,7 @@ This document is maintained under standing order SO-01.
 ## MVP-1 / ORDER 17 — PHP-B lane (2026-11-27)
 
 PHP-B ("customer API, OTP, security, load, host kit") continues from the ORDER 16 lane head
-`arena/f729618f-kandoo-cloud-php` (PR #3, **still a DRAFT**) because the P-31/OTP work the
+`arena/f729618f-kandoo-cloud-php` (PR #3; out of draft, verified 2026-11-27) because the P-31/OTP work the
 dispatch names as the continuation point (`cf52405`) lives on that branch and nowhere else.
 The PHP-B session branch `arena/c079209e-kandoo-cloud-php` therefore merged that lane head
 FIRST (`5f0aea7`) and opened **PR #5 against the lane branch**, so its diff is the PHP-B delta
