@@ -114,10 +114,13 @@ if ($config !== null) {
         $warn('customer_read_budget', 'customer_auth disabled, nothing to bound');
     }
     $pepper = (string) ($config['customer_auth']['otp_pepper'] ?? '');
-    if (strlen($pepper) >= 32) {
+    if (($config['customer_auth']['enabled'] ?? false) !== true) {
+        // Customer auth off is a supported deployment (the panel and public invoices still run).
+        $warn('otp_pepper', 'customer_auth disabled, no pepper required');
+    } elseif (strlen($pepper) >= 32) {
         $pass('otp_pepper', 'configured ('.strlen($pepper).' bytes)');
     } elseif ($pepper === '') {
-        $fail('otp_pepper', 'empty — customer OTP cannot run');
+        $fail('otp_pepper', 'empty — customer OTP cannot run while customer_auth is enabled');
     } else {
         $fail('otp_pepper', 'shorter than 32 bytes');
     }
