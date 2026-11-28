@@ -176,6 +176,11 @@ jobs:
         if: matrix.php == '8.1'
         run: python3 tools/dev/load-customer-read.py --concurrency 25 --requests 200 --github-notice
 
+      - name: Local kit PowerShell launch-decision smoke (synthetic; no server started)
+        if: matrix.php == '8.1'
+        shell: pwsh
+        run: ./tests/LocalKit/demo-windows-smoke.ps1
+
       - name: Sample self-test (isolated database, no live SMS)
         run: php bin/selftest.php --sample
 
