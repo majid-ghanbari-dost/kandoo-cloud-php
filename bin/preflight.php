@@ -57,27 +57,35 @@ try {
 } catch (Throwable $e) {
     $fail('config', 'not loadable: '.$e->getMessage());
 }
-if ($config !== null) {
+if (is_file($configPath)) {
+    // Independent of whether the file is valid: a config inside the web root is served by the
+    // web server whatever it contains.
     $real = realpath($configPath);
-    $publicRoot = realpath($root.'/public');
+    $publicRootReal = realpath($root.'/public');
     if ($real === false) {
         $fail('config_location', 'config path cannot be resolved');
-    } elseif ($publicRoot !== false && str_starts_with($real, $publicRoot.DIRECTORY_SEPARATOR)) {
+    } elseif ($publicRootReal !== false && str_starts_with($real, $publicRootReal.DIRECTORY_SEPARATOR)) {
         $fail('config_location', 'config.php is INSIDE the web root');
     } else {
         $pass('config_location', 'outside the web root');
     }
     $mode = @fileperms($configPath);
+    $env_ = (string) ($config['env'] ?? '');
     if (is_int($mode)) {
         $permissions = $mode & 0777;
-        if (($permissions & 0007) !== 0) {
-            $fail('config_permissions', 'world-accessible ('.decoct($permissions).'), use 0600 or 0640');
+        if (($permissions & 0002) !== 0) {
+            $fail('config_permissions', 'world-writable ('.decoct($permissions).'), use 0600 or 0640');
+        } elseif (($permissions & 0004) !== 0) {
+            $detail = 'world-readable ('.decoct($permissions).'), use 0600 or 0640';
+            $env_ === 'production' ? $fail('config_permissions', $detail) : $warn('config_permissions', $detail);
         } else {
             $pass('config_permissions', decoct($permissions));
         }
     } else {
         $warn('config_permissions', 'file mode not readable by this account');
     }
+}
+if ($config !== null) {
 
     // 3) Deployment-facing configuration policy (no values printed).
     $env = (string) ($config['env'] ?? '');
