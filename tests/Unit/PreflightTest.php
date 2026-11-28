@@ -17,7 +17,7 @@ use Kandoo\Cloud\Tests\Support\DbTestCase;
 final class PreflightTest extends DbTestCase
 {
     /** @param array<string,string> $extraEnv */
-    private function run(array $arguments, array $extraEnv = []): array
+    private function runCli(array $arguments, array $extraEnv = []): array
     {
         $env = array_merge($_ENV, ['PATH' => (string) getenv('PATH'),
             'KANDOO_CONFIG' => Config::defaultPath()], $extraEnv);
@@ -33,7 +33,7 @@ final class PreflightTest extends DbTestCase
 
     public function testPassesOnAHealthyInstallationAndPrintsNoSecret(): void
     {
-        [$status, $output, $error] = $this->run([]);
+        [$status, $output, $error] = $this->runCli([]);
         $this->assertSame(0, $status, $output.$error);
         $this->assertStringContainsString('PREFLIGHT PASS', $output);
         foreach (['php', 'config', 'config_location', 'web_root', 'no_dumps_in_web_root', 'database', 'migrations', 'tables'] as $check) {
@@ -49,7 +49,7 @@ final class PreflightTest extends DbTestCase
 
     public function testStrictModeTurnsAnExistingWarningIntoFailure(): void
     {
-        [$lenient, $output] = $this->run(['--json']);
+        [$lenient, $output] = $this->runCli(['--json']);
         $this->assertSame(0, $lenient, $output);
         $report = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame('PASS', $report['status']);
@@ -57,7 +57,7 @@ final class PreflightTest extends DbTestCase
         if ((int) $report['warn'] === 0) {
             $this->markTestSkipped('CI configuration has no warnings to gate on');
         }
-        [$status, $strictOutput, $error] = $this->run(['--strict']);
+        [$status, $strictOutput, $error] = $this->runCli(['--strict']);
         $this->assertSame(1, $status, 'strict mode must fail while a warning remains: '.$strictOutput.$error);
         $this->assertStringContainsString('PREFLIGHT FAIL (0 fail', $strictOutput);
     }
@@ -69,7 +69,7 @@ final class PreflightTest extends DbTestCase
         try {
             file_put_contents($directory.'/public/index.php', "<?php echo 'ok';");
             file_put_contents($directory.'/public/config.php', '<?php return [];');
-            [$status, $output, $error] = $this->run([], ['KANDOO_APP_ROOT' => $directory,
+            [$status, $output, $error] = $this->runCli([], ['KANDOO_APP_ROOT' => $directory,
                 'KANDOO_CONFIG' => $directory.'/public/config.php']);
             $this->assertSame(1, $status, 'planted config.php must fail the preflight: '.$output.$error);
             $this->assertMatchesRegularExpression('/^FAIL\s+web_root:/m', $output);
