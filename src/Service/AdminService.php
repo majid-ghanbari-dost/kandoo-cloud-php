@@ -89,16 +89,17 @@ final class AdminService
     private function page(): Response
     {
         $csrf = \Kandoo\Cloud\Customer\OtpSecrets::sessionToken();
+        $styleNonce = base64_encode(random_bytes(16));
         $headers = [
             'Cache-Control' => 'no-store', 'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+            'Content-Security-Policy' => "default-src 'none'; style-src 'nonce-{$styleNonce}'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
             'Set-Cookie' => 'kandoo_admin_csrf=' . $csrf . '; Path=/admin; ' . (($this->config['env'] ?? '') === 'demo' ? '' : 'Secure; ') . 'HttpOnly; SameSite=Strict',
         ];
         $e = static fn ($v): string => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $hidden = static function (string $action, string $token): string {
             return '<input type="hidden" name="csrf" value="' . htmlspecialchars($token, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"><input type="hidden" name="action" value="' . htmlspecialchars($action, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '">';
         };
-        $body = '<h1>مدیریت فاکتور دیجیتال کندو</h1><p>صفحهٔ مدیریت فعال است.</p>';
+        $body = '<header class="page-heading"><h1>مدیریت فاکتور دیجیتال کندو</h1><p>صفحهٔ مدیریت فعال است.</p></header>';
 
         if ($this->resetBudget !== null) {
             $body .= '<section><h2>بازنشانی بودجهٔ کد یک‌بارمصرف</h2>'
@@ -113,7 +114,7 @@ final class AdminService
             $body .= '<tr><td><code>' . $e($store['store_id']) . '</code></td><td>' . $e($store['entry_count']) . '</td><td>'
                 . $e($store['accepted_through_seq']) . '</td><td>' . (empty($store['throttled']) ? 'خیر' : 'بله') . '</td></tr>';
         }
-        $body .= '</tbody></table></section>';
+        $body .= '</tbody></table>' . ($stores === [] ? '<p class="empty">هنوز فروشگاهی ثبت نشده است.</p>' : '') . '</section>';
 
         $devices = $this->gateway->listDevices();
         $body .= '<section><h2>دستگاه‌ها (' . $e(count($devices)) . ')</h2>'
@@ -133,7 +134,7 @@ final class AdminService
                     . '<input name="reason" maxlength="255" placeholder="دلیل (اختیاری)"><button>ابطال دستگاه</button></form></td>';
             $body .= '</tr>';
         }
-        $body .= '</tbody></table></section>';
+        $body .= '</tbody></table>' . ($devices === [] ? '<p class="empty">هنوز دستگاهی ثبت نشده است.</p>' : '') . '</section>';
 
         $stats = $this->gateway->smsDeliveryStatistics();
         $body .= '<section><h2>آمار پیامک‌ها</h2><p>مجموع درخواست‌های ارسال: ' . $e($stats['total']) . '</p><ul>';
@@ -169,14 +170,30 @@ final class AdminService
 
         if ($this->demoOutbox !== null) {
             $body .= '<section><h2>صندوق پیام دمو (ارسال واقعی نشده)</h2><ul>';
-            foreach (($this->demoOutbox)() as $message) {
+            $messages = ($this->demoOutbox)();
+            foreach ($messages as $message) {
                 $body .= '<li><bdi>' . $e($message['phone']) . '</bdi> — ' . $e($message['body']) . '</li>';
             }
-            $body .= '</ul></section>';
+            $body .= '</ul>' . ($messages === [] ? '<p class="empty">هنوز پیام دمویی ثبت نشده است.</p>' : '') . '</section>';
         }
 
-        $html = '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>مدیریت فاکتور دیجیتال کندو</title></head><body>'
-            . $body . '</body></html>';
+        // No script or external resources: a per-response nonce permits only this static style block.
+        $css = <<<'CSS'
+@font-face{font-family:Vazirmatn;src:url(/assets/fonts/Vazirmatn-Regular.ttf) format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:Vazirmatn;src:url(/assets/fonts/Vazirmatn-Bold.ttf) format("truetype");font-weight:700;font-display:swap}
+:root{color-scheme:light;--honey:#F2A900;--ink:#2B1D0E;--cream:#FFF8E7;--wax:#F5E9C8;--green:#256B43;--brown:#9A3B0A}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font:16px/1.8 Vazirmatn,Tahoma,sans-serif}
+main{max-width:80rem;margin:auto;padding:16px;display:grid;gap:14px}.page-heading{padding:20px;border-radius:16px;background:var(--ink);color:var(--cream)}
+h1{font-size:1.3rem;margin:0}h2{font-size:1.05rem;margin:0 0 12px;color:var(--ink)}p{margin:8px 0}
+section{background:#fff;border:1px solid #ead9b6;border-radius:16px;padding:18px;overflow-x:auto;box-shadow:0 1px 0 rgba(43,29,14,.06)}
+table{width:100%;border-collapse:collapse;text-align:right}th,td{border-bottom:1px solid #eee0bf;padding:10px;vertical-align:top}th{background:var(--wax);white-space:nowrap}code{direction:ltr;unicode-bidi:isolate;display:inline-block;overflow-wrap:anywhere}
+label{font-weight:700;display:block}input{font:inherit;padding:9px 12px;border:1px solid #c9b88e;border-radius:10px;max-width:100%}input[name=phone]{direction:ltr}
+button{font:inherit;font-weight:700;background:var(--honey);color:var(--ink);border:0;border-radius:10px;padding:10px 16px;cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid var(--green);outline-offset:2px}ul{padding-inline-start:24px}.empty{color:#6b5a3e}
+@media(max-width:600px){main{padding:12px;gap:12px}section{padding:16px}input[name=phone]{width:100%}form button{margin-top:8px}table{min-width:36rem}}
+@media print{body{background:#fff}main{padding:0}section,.page-heading{box-shadow:none;break-inside:avoid}button{display:none}}
+CSS;
+        $html = '<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مدیریت فاکتور دیجیتال کندو</title><style nonce="'.$styleNonce.'">'.$css.'</style></head><body><main>'
+            . $body . '</main></body></html>';
         return Response::html(200, $html, $headers);
     }
 }

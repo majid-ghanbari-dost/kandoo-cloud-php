@@ -115,5 +115,25 @@ final class AdminV2Test extends TestCase
         // 2×1500 + 1×950 = 3950 for the day
         $this->assertStringContainsString('3950.000000', $response->body());
         $this->assertSame('no-store', $response->header('Cache-Control'));
+        $this->assertStringContainsString('name="viewport"', $response->body());
+        $this->assertStringContainsString('border-radius:16px', $response->body());
+        $this->assertStringContainsString('@media(max-width:600px)', $response->body());
+        $this->assertStringContainsString("style-src 'nonce-", (string)$response->header('Content-Security-Policy'));
+        $this->assertStringNotContainsString("script-src 'unsafe-inline'", (string)$response->header('Content-Security-Policy'));
+
     }
+    public function testEmptyStatesAndDemoOutboxAreEscaped(): void
+    {
+        $config = $this->config(password_hash('TEST-admin-pass', PASSWORD_DEFAULT));
+        $gateway = new MemoryGateway();
+        (new AdminManager($config, $gateway))->transition(true, 'TEST-admin-pass', '2026-01-01 00:00:00');
+        $service = new AdminService($config, $gateway, null, static fn (): array => [['phone'=>'<b>synthetic</b>', 'body'=>'<script>synthetic</script>']]);
+        $page = $service->handle(new Request('GET', '/admin', ['authorization'=>'Basic '.base64_encode('admin:TEST-admin-pass')]));
+        $this->assertSame(200, $page->status());
+        $this->assertStringContainsString('هنوز فروشگاهی ثبت نشده است.', $page->body());
+        $this->assertStringContainsString('هنوز دستگاهی ثبت نشده است.', $page->body());
+        $this->assertStringContainsString('&lt;script&gt;synthetic&lt;/script&gt;', $page->body());
+        $this->assertStringNotContainsString('<script>synthetic</script>', $page->body());
+    }
+
 }
