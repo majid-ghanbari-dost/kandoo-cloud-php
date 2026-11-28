@@ -1,8 +1,40 @@
-# Kandoo local demo, Windows PowerShell 5.1+. Start MariaDB in XAMPP first.
+# Kandoo local demo, Windows PowerShell 5.1+. Never stops an existing database.
+param([switch]$TestLibraryOnly)
 $ErrorActionPreference = 'Stop'
+
+function Test-DemoDatabasePort {
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $pending = $client.BeginConnect('127.0.0.1', 3306, $null, $null)
+        if (!$pending.AsyncWaitHandle.WaitOne(500)) { return $false }
+        $client.EndConnect($pending)
+        return $true
+    } catch { return $false } finally { $client.Dispose() }
+}
+
+function Start-DemoMariaDbIfNeeded([string]$XamppRoot) {
+    if (Test-DemoDatabasePort) { return }
+    $mysqlRoot = Join-Path $XamppRoot 'mysql'
+    $binary = Join-Path $mysqlRoot 'bin\mysqld.exe'
+    $ini = Join-Path $mysqlRoot 'bin\my.ini'
+    if (!(Test-Path -LiteralPath $binary -PathType Leaf) -or !(Test-Path -LiteralPath $ini -PathType Leaf)) {
+        throw 'MariaDB is not listening and the XAMPP server executable or my.ini was not found.'
+    }
+    Write-Host 'Starting the XAMPP MariaDB server; an existing instance is never stopped.'
+    Start-Process -FilePath $binary -ArgumentList @("--defaults-file=`"$ini`"", '--standalone') -WorkingDirectory $mysqlRoot -WindowStyle Hidden | Out-Null
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
+        if (Test-DemoDatabasePort) { return }
+        Start-Sleep -Milliseconds 500
+    }
+    throw 'MariaDB did not start on 127.0.0.1:3306; inspect XAMPP logs. No database was deleted.'
+}
+
+if ($TestLibraryOnly) { return }
 $root = Split-Path -Parent $PSScriptRoot
-$php = 'C:\xampp\php\php.exe'
-if (!(Test-Path -LiteralPath $php)) { throw 'PHP XAMPP not found at C:\xampp\php\php.exe.' }
+$xampp = 'C:\xampp'
+$php = Join-Path $xampp 'php\php.exe'
+if (!(Test-Path -LiteralPath $php -PathType Leaf)) { throw 'PHP XAMPP not found at C:\xampp\php\php.exe.' }
+Start-DemoMariaDbIfNeeded $xampp
 $demo = Join-Path $root '.kandoo-demo'
 $config = Join-Path $demo 'config.php'
 $setup = Join-Path $PSScriptRoot 'demo-setup.php'
