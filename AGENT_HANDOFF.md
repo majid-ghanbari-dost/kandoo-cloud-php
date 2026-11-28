@@ -72,7 +72,17 @@ optional; two-phase load measurement; keep two atomic DB claims over an in-proce
 (+32.88 ms is the price, APCu would not be atomic across the FPM pool); preflight as a
 `--strict` go-live gate that is explicitly not deploy approval.
 
-Never touched: workflow files (no CI change this session), any tag, `main` directly.
+**MERGED (2026-11-28, PM-31):** PR #8 → merge `3aa5478` (CI
+https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/46165930972 green),
+PR #11 → merge `50e663a` (CI 46166767200 green), PR #12 → merge `5e2c94b` (CI 46167412140 green).
+`main` is green at each step. The only workflow change of the session is PR #11's single OTP-load
+step, declared in its first line.
+
+**Branches/tags:** no new tag was created this session — `o17-P-34`/`o17-P-31` already point at
+`444d48e` and must never move; tagging `main` is forbidden, and a duplicate `o17-P-34` would be
+worse than no tag. Next session: pull `main` (`5e2c94b` or later), do not re-implement
+P-31/P-34/P-30/P-33, and start from whatever `docs/BACKLOG.md` lists for PHP-B (the section was
+empty at the end of this session — take ANY AGENT items until the PM refills it).
 ## MVP-1 / ORDER 17 — PHP-B lane (2026-11-27)
 
 PHP-B ("customer API, OTP, security, load, host kit") continues from the ORDER 16 lane head
