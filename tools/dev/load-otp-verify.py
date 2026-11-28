@@ -22,6 +22,7 @@ import math
 import os
 from pathlib import Path
 import random
+import secrets
 import socket
 import subprocess
 import sys
@@ -41,6 +42,13 @@ parser.add_argument('--github-notice', action='store_true')
 args = parser.parse_args()
 if args.requests < args.concurrency or args.requests > 1000 or args.requests % args.concurrency:
     parser.error('requests must be a multiple of concurrency, from concurrency to 1000')
+
+
+def fail(message):
+    """Make the failure readable in the run annotations (the step log is not always available)."""
+    print('::error title=OTP load::' + message.replace('\n', ' ')[:900], flush=True)
+    sys.stderr.write(message + '\n')
+    sys.exit(1)
 
 
 def post(url, payload, headers, timeout=30):
@@ -63,12 +71,10 @@ with tempfile.TemporaryDirectory(prefix='kandoo-otp-load-') as directory:
     seeded = subprocess.run([args.php, str(root / 'tools/dev/load-customer-seed.php'), config, '0', 'otp'],
                             cwd=root, capture_output=True, text=True)
     if seeded.returncode or not seeded.stdout.strip():
-        sys.stderr.write(seeded.stderr or 'OTP load seed failed\n')
-        sys.exit(1)
+        fail('OTP load seed failed: ' + ((seeded.stderr or seeded.stdout or '').strip() or 'no output'))
     seed = json.loads(seeded.stdout.strip().splitlines()[-1])
     if seed.get('otp') is not True:
-        sys.stderr.write('seed did not enter OTP mode\n')
-        sys.exit(1)
+        fail('seed did not enter OTP mode')
 
     env = os.environ.copy()
     env['KANDOO_CONFIG'] = config
@@ -84,16 +90,17 @@ with tempfile.TemporaryDirectory(prefix='kandoo-otp-load-') as directory:
         deadline = time.monotonic() + 20
         while True:
             if server.poll() is not None:
-                sys.exit('PHP server exited before startup')
+                fail('PHP server exited before startup')
             try:
                 with socket.create_connection(('127.0.0.1', port), timeout=0.25):
                     break
             except OSError:
                 if time.monotonic() >= deadline:
-                    sys.exit('PHP server did not start')
+                    fail('PHP server did not start')
                 time.sleep(.05)
         base = f'http://127.0.0.1:{port}'
-        device = str(uuid.uuid4())
+        # The device token must satisfy CustomerAuth::validDevice(): 43 chars of base64url.
+        device = secrets.token_urlsafe(32)
 
         # One real issue: this is the path that would call the provider, here it is a dry run.
         status, issued = post(base + '/v1/customer/otp/challenges', {'phone': seed['phone']},
@@ -101,8 +108,7 @@ with tempfile.TemporaryDirectory(prefix='kandoo-otp-load-') as directory:
                                'X-Kandoo-Device': device})
         challenge = issued.get('challenge_id')
         if status != 201 or not isinstance(challenge, str) or challenge == '':
-            sys.stderr.write(f'issue failed: HTTP {status} {json.dumps(issued)[:200]}\n')
-            sys.exit(1)
+            fail(f'issue failed: HTTP {status} {json.dumps(issued)[:300]}')
 
         wrong_codes = ['000000', '111111', '222222', '333333']
         barrier = threading.Barrier(args.concurrency)
@@ -146,4 +152,4 @@ with tempfile.TemporaryDirectory(prefix='kandoo-otp-load-') as directory:
     if args.github_notice:
         print('::notice title=P-34 customer OTP verify load measurement::' + report, flush=True)
     if errors:
-        sys.exit(1)
+        fail(f'{errors} server-side error(s): {json.dumps(histogram, sort_keys=True)}')
