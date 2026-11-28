@@ -186,9 +186,10 @@ final class CustomerPages
     }
 
     /**
-     * Direct-peer read budget for the customer surface (P-34). 0 disables it, matching the
-     * `public_rate_limit_per_minute` convention. Only the direct peer address is trusted —
-     * forwarded headers are not read, so a proxy collapses to one bucket (documented limit).
+     * Per-client read budget for the customer surface (P-34). 0 disables it, matching the
+     * `public_rate_limit_per_minute` convention. The client address comes from `PeerAddress`:
+     * the direct peer unless it is an explicitly configured trusted proxy, in which case the
+     * right-most untrusted `X-Forwarded-For` hop is used (an untrusted peer cannot spoof it).
      */
     private function allowReadIp(Request $request): bool
     {
@@ -221,7 +222,7 @@ final class CustomerPages
 
     private function allowIp(Request $request, string $scope): bool
     {
-        // Trust only REMOTE_ADDR; forwarded headers are untrusted without a proxy policy.
+        // OTP issue/verify budget key; forwarded headers count only from a trusted proxy (P-34).
         if ($this->gateway === null || $this->clock === null) { return false; }
         $limit = $scope === 'customer_issue' ? ($this->config['issue_ip_limit_per_minute'] ?? 10) : ($this->config['verify_ip_limit_per_minute'] ?? 20);
         $peer = PeerAddress::effective($request, $this->trustedProxies);

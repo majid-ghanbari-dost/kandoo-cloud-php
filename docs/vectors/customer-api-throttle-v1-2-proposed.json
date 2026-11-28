@@ -1,0 +1,403 @@
+{
+  "status": "PROPOSED — not an accepted contract; awaiting C-AND-CUST acceptance (PHP-B, BACKLOG item 1/2)",
+  "contract": "docs/CONTRACT-ADDENDUM-V1-2-CUSTOMER-PROPOSAL.md — customer read budgets (per direct peer, per session)",
+  "description": "Deterministic throttling vectors for the customer API. Unlike customer-api-v1-2-proposed.json these run WITH the read budget enabled and with explicit (small) limits, so a client implementation can replay the 429 path instead of only the happy path. Scenarios are independent: each starts from the setup below with an empty bucket state, a fixed clock and its own limits. A step with advance_seconds moves the clock forward instead of issuing a request. Everything is synthetic.",
+  "setup": {
+    "phone": "+989120000001",
+    "session_a": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "session_b": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "store": "11111111-1111-4111-8111-111111111111",
+    "invoice": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "clock_unix": 1767323045,
+    "session_expires_at": 1767326645,
+    "window_seconds": 60
+  },
+  "client_obligations": [
+    "A 429 with {\"status\":\"RATE_LIMITED\"} means \"ask again later\": show a retry message and honour the Retry-After seconds (60) before retrying. It is not an authentication failure.",
+    "Never treat 429 as a logout and never delete the stored session on 429 — the Bearer stays valid for the whole session TTL.",
+    "Only a 401 {\"status\":\"UNAUTHENTICATED\"} clears the stored session and returns the customer to the OTP screen.",
+    "The read budget is per client address AND per session: an exhausted Bearer must not block another session's screen, and a slow retry loop must stop once Retry-After is known.",
+    "Do not add Retry-After to the clock yourself as a fixed sleep: the server window is a fixed 1-minute bucket, so retrying after the advertised seconds is always inside a fresh bucket.",
+    "A 429 response carries no invoice data and no Cache-Control other than no-store: do not cache it and do not reuse an older invoice payload."
+  ],
+  "scenarios": [
+    {
+      "id": "session-budget",
+      "limits": {
+        "read_ip_limit_per_minute": 1000,
+        "read_session_limit_per_minute": 2
+      },
+      "peer": "192.0.2.10",
+      "description": "Two reads per session per minute; a second session on the same peer keeps its own budget; denied requests do not refill the bucket; the window rolls over after 60s.",
+      "steps": [
+        {
+          "id": "a-list-first",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "b-list-first",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_b}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "a-detail-second",
+          "method": "GET",
+          "path": "/v1/customer/invoices/{{store}}/{{invoice}}",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "invoice": {
+                "store_id": "{{store}}",
+                "invoice_id": "{{invoice}}",
+                "display_number": 9,
+                "payable_rials": 12000,
+                "line_items": []
+              }
+            }
+          }
+        },
+        {
+          "id": "a-third-is-throttled",
+          "method": "GET",
+          "path": "/v1/customer/invoices/{{store}}/{{invoice}}",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 429,
+            "body": {
+              "status": "RATE_LIMITED"
+            },
+            "headers": {
+              "Retry-After": "60",
+              "Cache-Control": "no-store"
+            }
+          }
+        },
+        {
+          "id": "b-second-still-allowed",
+          "method": "GET",
+          "path": "/v1/customer/invoices/{{store}}/{{invoice}}",
+          "headers": {
+            "authorization": "Bearer {{session_b}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "invoice": {
+                "store_id": "{{store}}",
+                "invoice_id": "{{invoice}}",
+                "display_number": 9,
+                "payable_rials": 12000,
+                "line_items": []
+              }
+            }
+          }
+        },
+        {
+          "id": "a-denied-retry-is-still-denied",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 429,
+            "body": {
+              "status": "RATE_LIMITED"
+            }
+          }
+        },
+        {
+          "id": "advance-one-window",
+          "advance_seconds": 60
+        },
+        {
+          "id": "a-allowed-after-window",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "peer-budget",
+      "limits": {
+        "read_ip_limit_per_minute": 2,
+        "read_session_limit_per_minute": 1000
+      },
+      "peer": "198.51.100.7",
+      "description": "Two reads per client address per minute across ALL sessions; another address is unaffected; the window rolls over after 60s.",
+      "steps": [
+        {
+          "id": "a-list-first",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "b-list-second-same-peer",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_b}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "a-third-peer-throttled",
+          "method": "GET",
+          "path": "/v1/customer/invoices/{{store}}/{{invoice}}",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 429,
+            "body": {
+              "status": "RATE_LIMITED"
+            },
+            "headers": {
+              "Retry-After": "60"
+            }
+          }
+        },
+        {
+          "id": "other-peer-unaffected",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "peer": "198.51.100.8",
+          "expect": {
+            "http": 200,
+            "body": {
+              "stores": [
+                {
+                  "store_id": "{{store}}",
+                  "store_name": "TEST Throttle Store",
+                  "invoices": [
+                    {
+                      "invoice_id": "{{invoice}}",
+                      "display_number": 9
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "advance-one-window",
+          "advance_seconds": 60
+        },
+        {
+          "id": "peer-allowed-after-window",
+          "method": "GET",
+          "path": "/v1/customer/invoices/{{store}}/{{invoice}}",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "invoice": {
+                "store_id": "{{store}}",
+                "invoice_id": "{{invoice}}",
+                "display_number": 9,
+                "payable_rials": 12000,
+                "line_items": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "session-resume",
+      "limits": {
+        "read_ip_limit_per_minute": 1000,
+        "read_session_limit_per_minute": 1
+      },
+      "peer": "203.0.113.20",
+      "description": "Session resume shares the same budget as the lists; an unknown Bearer is 401 and consumes no session budget; another session keeps its own budget.",
+      "steps": [
+        {
+          "id": "unknown-session-is-401",
+          "method": "GET",
+          "path": "/v1/customer/session",
+          "headers": {
+            "authorization": "Bearer ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
+          },
+          "expect": {
+            "http": 401,
+            "body": {
+              "status": "UNAUTHENTICATED"
+            }
+          }
+        },
+        {
+          "id": "a-resume-valid",
+          "method": "GET",
+          "path": "/v1/customer/session",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "status": "VALID",
+              "expires_at": 1767326645
+            },
+            "headers": {
+              "Cache-Control": "no-store"
+            }
+          }
+        },
+        {
+          "id": "a-resume-throttled",
+          "method": "GET",
+          "path": "/v1/customer/session",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 429,
+            "body": {
+              "status": "RATE_LIMITED"
+            },
+            "headers": {
+              "Retry-After": "60"
+            }
+          }
+        },
+        {
+          "id": "b-resume-valid",
+          "method": "GET",
+          "path": "/v1/customer/session",
+          "headers": {
+            "authorization": "Bearer {{session_b}}"
+          },
+          "expect": {
+            "http": 200,
+            "body": {
+              "status": "VALID"
+            }
+          }
+        },
+        {
+          "id": "a-list-shares-session-budget",
+          "method": "GET",
+          "path": "/v1/customer/invoices",
+          "headers": {
+            "authorization": "Bearer {{session_a}}"
+          },
+          "expect": {
+            "http": 429,
+            "body": {
+              "status": "RATE_LIMITED"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
