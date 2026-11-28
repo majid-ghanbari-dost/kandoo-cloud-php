@@ -42,7 +42,10 @@ final class DocsCommandReferenceTest extends TestCase
 
     public function testEveryDocumentedRepositoryPathExists(): void
     {
-        $pattern = '/\b(?:php\s+|python3?\s+)?((?:bin|tools\/dev|src|tests|migrations|docs)\/[A-Za-z0-9_.\/-]+\.(?:php|py|sql|md))/';
+        // Only paths this repo owns. `docs/...` references may point at the governance repo
+        // (Kandoo `main`), where those files do exist; checking them here would fail for the
+        // wrong reason.
+        $pattern = '/\b(?:php\s+|python3?\s+)?((?:bin|tools\/dev|src|tests|migrations|public)\/[A-Za-z0-9_.\/-]+\.(?:php|py|sql|md|ps1))/';
         $checked = 0;
         $broken = [];
         foreach (self::documents() as $document) {
@@ -57,7 +60,7 @@ final class DocsCommandReferenceTest extends TestCase
                 }
             }
         }
-        $this->assertGreaterThan(20, $checked, 'the documents must reference real commands');
+        $this->assertGreaterThan(30, $checked, 'the documents must reference real commands');
         $this->assertSame([], array_values(array_unique($broken)),
             'documentation references files that do not exist');
     }
