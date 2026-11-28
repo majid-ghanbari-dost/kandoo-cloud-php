@@ -2,6 +2,63 @@
 
 This document is maintained under standing order SO-01.
 
+## MVP-1 / ORDER 17 — PHP-B lane, M-014 standing session (2026-11-28)
+
+Branch `arena/09d00e66-kandoo-cloud-php` from `main` `aa7dbff` (PR #3 merged), one PR (#8).
+PHP-B section of `docs/BACKLOG.md` completed in order; nothing from another owner's paths was
+edited (PM-32): the PHP-A launcher was reviewed read-only (comment on PR #7).
+
+**Item 2 — P-34 (findings fixed or listed).**
+- Fixed: a reverse proxy collapsed every customer into ONE limiter bucket. New
+  `src/Http/PeerAddress.php` uses the right-most untrusted `X-Forwarded-For` hop **only** when
+  the direct peer is in the explicit `trusted_proxies` config list; malformed/oversized header or
+  every-hop-trusted falls back to the direct peer; empty list = previous behaviour. Wired into
+  the public limiter and both customer limiters; the admin limiter deliberately stays on the
+  direct peer (recorded in the review).
+- Fixed: SHA-256 proved integrity but not authenticity of a backup. Optional `backup_hmac_key`
+  signs the archive (HMAC-SHA256); `restore-test` refuses a missing signature, a wrong signature
+  and a signature presented with no configured key — all before any DDL.
+- Measured: the load driver now runs two phases, so the throttle's own price is visible.
+  Green run https://github.com/majid-ghanbari-dost/kandoo-cloud-php/actions/runs/46163877296
+  (PHP 8.1 + MariaDB 10.6, loopback, single worker, 200 requests, concurrency 25, 0 errors):
+  p95 **46.11 ms** budget off vs **78.99 ms** budget on → **+32.88 ms per request** for the two
+  atomic bucket claims. Local latency only, not plan-E1 capacity.
+- Listed, not claimed closed: host-side proxy/logging/HTTPS review, distributed attacker and
+  admin bucket drain, per-device binding of customer sessions (accepted threat model), pen test.
+
+**Item 1 — P-31 finish / throttling and session vectors.**
+`docs/vectors/customer-api-throttle-v1-2-proposed.json` states the 429 path as three
+independent scenarios (per-session budget, per-peer budget, session resume sharing the budget)
+with per-scenario limits, a clock-advance step and the client obligations the Android lane needs
+(honour `Retry-After`, never log out on 429, only 401 clears the session).
+`tests/Unit/CustomerThrottleVectorTest.php` replays the file against the real surface, so the
+file is pinned. **Still open (cross-lane): C-AND-CUST acceptance/replay of this file.** The
+accepted P-31 happy-path vectors are unchanged.
+
+**Item 3 — P-30 host kit + P-33 Faraz kit.**
+`bin/preflight.php` (new, read-only): runtime + extensions, config loadable and OUTSIDE the web
+root with safe permissions, https base_url, pepper length, backup key, trusted proxies, web-root
+contents (no dumps), DB charset, pending migrations, runtime tables, cron heartbeat freshness.
+Writes nothing, prints no secret, `--strict` for the go-live gate, `--json` for logs;
+`tests/Unit/PreflightTest.php` proves it passes on CI and FAILS on a config planted in `public/`.
+`docs/SHARED-HOST-P30-FA.md` now documents it as the pre-release gate and the HMAC restore path.
+`docs/FARAZ-REGISTRATION-P33-FA.md` gained a paste kit (panel fields, config block, the exact
+wire payload, pre-enable checklist). **Nothing is bought or registered; delivery is NOT-VERIFIED.**
+
+**ANY AGENT.** `tests/Unit/DocsCommandReferenceTest.php` makes every repo path the docs promise
+(bin/tools/dev/src/tests/migrations/public: 63 references) an existence check, and pins "every
+`bin/*.php` refuses web access + declares strict types" and the sample self-test's isolation
+guard. Ten `docs/...` references that point at the governance repo were verified present in
+Kandoo rather than assumed, and are out of scope for that guard.
+
+Decisions recorded in `docs/decisions-made.md` (lane copy). For the manager to fold into Kandoo
+`docs/decisions-made.md` (I did not write to another repo's `main`):
+trusted-proxy resolution for the non-admin limiters; HMAC backup authenticity with the key
+optional; two-phase load measurement; keep two atomic DB claims over an in-process counter
+(+32.88 ms is the price, APCu would not be atomic across the FPM pool); preflight as a
+`--strict` go-live gate that is explicitly not deploy approval.
+
+Never touched: workflow files (no CI change this session), any tag, `main` directly.
 ## MVP-1 / ORDER 17 — PHP-B lane (2026-11-27)
 
 PHP-B ("customer API, OTP, security, load, host kit") continues from the ORDER 16 lane head
