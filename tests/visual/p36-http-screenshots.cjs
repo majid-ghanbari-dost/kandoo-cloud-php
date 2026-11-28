@@ -22,6 +22,11 @@ const { chromium } = require('playwright-core');
       console.log('Synthetic HTTP screenshot:', name, status);
     }
     await capture('normal', '/i/' + fixture.public_token, 200, '.brand-header', 'TEST customer');
+    if (await page.locator('table.lines tbody tr').first().evaluate(el => getComputedStyle(el).display) !== 'grid') throw new Error('Mobile receipt lines not grouped');
+    await page.emulateMedia({ media: 'print' });
+    if (await page.locator('table.lines').evaluate(el => getComputedStyle(el).display) !== 'table') throw new Error('Print must retain the full table');
+    await page.screenshot({ path: target + '/print.png', fullPage: true });
+    await page.emulateMedia({ media: 'screen' });
     await context.addCookies([{name:'kandoo_session', value:fixture.session, url:base}]);
     await capture('empty', '/account/invoices', 200, '.empty-state', 'هنوز فاکتوری ندارید');
     // This route renders the same 429 support state returned by the actual OTP lock flow.

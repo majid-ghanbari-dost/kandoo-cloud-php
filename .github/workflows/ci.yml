@@ -170,6 +170,14 @@ jobs:
           path: p36-artifacts/empty.png
           if-no-files-found: error
 
+      - name: P-36 synthetic print screenshot
+        if: matrix.php == '8.1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: p36-synthetic-print
+          path: p36-artifacts/print.png
+          if-no-files-found: error
+
       - name: P-36 synthetic locked HTTP screenshot
         if: matrix.php == '8.1'
         uses: actions/upload-artifact@v4

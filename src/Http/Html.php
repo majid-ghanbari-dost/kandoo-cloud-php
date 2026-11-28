@@ -34,7 +34,7 @@ final class Html
     {
         $page = self::renderInvoicePage($row);
         $page = str_replace('--radius: 14px;', '--radius: 16px;', $page);
-        return str_replace('</style>', '@media(max-width:600px){.sheet{margin:12px;padding:18px}table.lines{display:block;overflow-x:auto}.facts{grid-template-columns:auto 1fr}}' . '</style>', $page);
+        return str_replace('</style>', '@media(max-width:600px){.sheet{margin:12px;padding:18px}.facts{grid-template-columns:auto 1fr}}' . '</style>', $page);
     }
 
     /** @param array<string, mixed> $row projection row */
@@ -153,7 +153,9 @@ body { margin: 0; background: var(--wax); color: var(--ink); font-family: "Vazir
 .brand-header { display:flex; align-items:center; gap:12px; }
 .brand-header svg { flex:none; }
 .brand-header .store { font-size:20px; line-height:1.4; }
-.tear { border:0; border-top:2px dashed #D9C9A0; margin:18px -18px; }
+.tear { position:relative; border:0; border-top:2px dashed #D9C9A0; margin:18px -18px; }
+.tear::before, .tear::after { content:""; position:absolute; top:-11px; width:20px; height:20px; border-radius:50%; background:var(--wax); }
+.tear::before { right:-10px; } .tear::after { left:-10px; }
 .print-hint { text-align:center; color:var(--muted); font-size:.8rem; }
 .eyebrow { margin: 0; color: var(--green); font-weight: 700; letter-spacing: .02em; }
 h1 { font-size: 1.35rem; margin: var(--space-1) 0 var(--space-2); }
@@ -163,8 +165,9 @@ h2 { font-size: 1rem; margin: 0 0 var(--space-2); }
 .facts dt { color: var(--muted); font-size: .85rem; white-space: nowrap; }
 .facts dd { margin: 0; font-weight: 700; text-align:left; overflow-wrap:anywhere; }
 .tz { color: var(--muted); font-size: .75rem; font-weight: 400; }
-.status.issued { color: var(--green); }
-.status.review { color: var(--review); }
+.status { display:inline-block; padding:2px 12px; border-radius:999px; color:#fff; font-size:.85rem; }
+.status.issued { background:var(--green); }
+.status.review { background:var(--review); }
 .gap, .payments { border: 1px dashed var(--line); background: var(--cream); border-radius: var(--radius); padding: var(--space-3); margin: var(--space-4) 0; font-size: .9rem; }
 .gap h2, .payments h2 { color: var(--review); }
 .gap p { margin: var(--space-1) 0; color: var(--muted); }
@@ -183,15 +186,27 @@ table.lines .num { text-align: left; }
 .legal { margin-top: var(--space-4); border-top: 1px solid var(--line); padding-top: var(--space-3); font-size: .8rem; color: var(--review); }
 .legal p { margin: var(--space-1) 0; }
 .legal .en { color: var(--muted); }
-@media (max-width:600px) {
+@media screen and (max-width:600px) {
   .sheet { margin:20px 16px; }
-  table.lines { display:block; overflow-x:auto; }
   .facts { grid-template-columns:auto 1fr; }
+  /* Receipt-like line groups, preserving recorded thousandths, unit prices and rial totals. */
+  table.lines, table.lines tbody { display:block; width:100%; }
+  table.lines thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  table.lines tr { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 12px; padding:10px 0; border-bottom:1px dotted #C9B88E; }
+  table.lines td { display:block; border:0; padding:0; }
+  table.lines td:first-child { grid-column:1; font-weight:700; overflow-wrap:anywhere; }
+  table.lines td:nth-child(2), table.lines td:nth-child(3) { grid-column:1; text-align:right; color:var(--muted); font-size:.8rem; }
+  table.lines td:nth-child(2)::before { content:"تعداد (هزارم واحد): "; }
+  table.lines td:nth-child(3)::before { content:"قیمت واحد (ریال): "; }
+  table.lines td:nth-child(4) { grid-column:2; grid-row:1 / 4; align-self:center; font-weight:700; }
+  table.lines td:nth-child(4)::before { content:"جمع (ریال): "; font-size:.75rem; color:var(--muted); }
 }
 @media print {
   body { background: var(--paper); }
   .sheet { margin: 0; border: none; border-top: 4px solid var(--honey); border-radius: 0; }
   .print-hint { display:none; }
+  .status { color:var(--ink); background:none; padding:0; }
+  .tear::before, .tear::after { display:none; }
   @page { margin: 12mm; }
 }
 </style>
