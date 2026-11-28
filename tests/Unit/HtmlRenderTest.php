@@ -123,7 +123,10 @@ final class HtmlRenderTest extends TestCase
         $this->assertStringContainsString('class="brand-header"', $html);
         $this->assertStringContainsString('class="tear"', $html);
         $this->assertStringContainsString('background: var(--honey)', $html);
-        $this->assertStringContainsString('@media (max-width:600px)', $html);
+        $this->assertStringContainsString('@media screen and (max-width:600px)', $html);
+        $this->assertStringContainsString('تعداد (هزارم واحد): ', $html);
+        $this->assertStringContainsString('جمع (ریال): ', $html);
+        $this->assertStringContainsString('border-bottom:1px dotted #C9B88E', $html);
         $this->assertStringContainsString('25,000</bdi> ریال', $html);
         $this->assertStringNotContainsString(self::TOKEN, $html);
     }
