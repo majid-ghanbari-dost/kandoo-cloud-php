@@ -48,7 +48,8 @@ final class PublicInvoiceService
         if ($limit > 0) {
             $now = $this->clock->nowUnix();
             $windowStart = intdiv($now, 60) * 60;
-            $clientKey = $request->clientIp() !== '' ? $request->clientIp() : 'unknown';
+            $peer = \Kandoo\Cloud\Http\PeerAddress::effective($request, (array) ($this->config['trusted_proxies'] ?? []));
+            $clientKey = $peer !== '' ? $peer : 'unknown';
             if (!$this->gateway->rateHit('public', $clientKey, $windowStart, $limit)) {
                 $retryAfter = max(1, $windowStart + 60 - $now);
                 $envelope = Envelopes::publicRateLimited();

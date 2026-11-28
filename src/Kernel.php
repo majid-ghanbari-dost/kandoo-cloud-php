@@ -84,7 +84,7 @@ final class Kernel
                     : (($this->config['faraz_sms']['enabled'] ?? false) ? new \Kandoo\Cloud\Sms\FarazAdapter($this->config['faraz_sms']) : null),
                 new \Kandoo\Cloud\Sms\SmsCostRecorder($this->config['sms_cost'] ?? ['enabled'=>false])
             );
-            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock, ($this->config['env'] ?? '') === 'demo'))->handle($request);
+            return (new \Kandoo\Cloud\Customer\CustomerPages($this->config['customer_auth'] ?? ['enabled' => false], $auth, ($this->config['public_legal_copy_required'] ?? false) === true, $this->gateway, $this->clock, ($this->config['env'] ?? '') === 'demo', (array) ($this->config['trusted_proxies'] ?? [])))->handle($request);
         }
 
         if ($path === '/health') {

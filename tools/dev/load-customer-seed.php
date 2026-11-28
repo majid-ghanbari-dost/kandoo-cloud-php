@@ -10,7 +10,11 @@ declare(strict_types=1);
  * line the Python driver reads. Refuses anything but an isolated local demo/TEST database,
  * so it can never touch owner or production data.
  *
- *   php tools/dev/load-customer-seed.php /tmp/load-config.php
+ *   php tools/dev/load-customer-seed.php /tmp/load-config.php [read-limit-per-minute]
+ *
+ * The optional third argument sets the customer read budget for BOTH buckets (0 = disabled,
+ * the latency baseline). A high value keeps the limiter active without ever tripping, which is
+ * how the P-34 "what does the throttle cost" measurement is taken.
  *
  * Every value here is FAKE (TEST-… / placeholder phone and UUIDs). No SMS is sent.
  */
@@ -20,7 +24,7 @@ use Kandoo\Cloud\Customer\OtpSecrets;
 use Kandoo\Cloud\Database;
 use Kandoo\Cloud\Store\MariaDbGateway;
 
-if (PHP_SAPI !== 'cli' || count($argv) !== 2) { exit(2); }
+if (PHP_SAPI !== 'cli' || (count($argv) !== 2 && count($argv) !== 3)) { exit(2); }
 require dirname(__DIR__, 2).'/src/bootstrap.php';
 
 try {
@@ -31,14 +35,16 @@ try {
             || ($config['env'] === 'demo' && preg_match('/^kandoo_demo_[0-9a-f]{12}$/D', $name) === 1))) {
         throw new RuntimeException('Not an isolated local demo/test database');
     }
-    // Synthetic-only policy values; the read throttle is DISABLED here so the benchmark
-    // measures latency, while enforcement itself is proven in CustomerReadLimitDatabaseTest.
+    // Synthetic-only policy values; the read budget comes from argv[2] (default 0 = off), while
+    // enforcement itself is proven in tests/Unit/CustomerReadLimitDatabaseTest.php.
+    $readLimit = isset($argv[2]) ? (int) $argv[2] : 0;
+    if ($readLimit < 0 || $readLimit > 100000000) { throw new RuntimeException('Invalid read limit'); }
     $config['customer_auth'] = [
         'enabled' => true, 'code_length' => 6, 'code_ttl_seconds' => 300, 'max_attempts' => 3,
         'codes_per_announcement' => 2, 'issue_window_seconds' => 900, 'max_issues_per_window' => 3,
         'session_ttl_seconds' => 3600, 'device_numbers_per_day' => 3, 'device_ttl_seconds' => 2592000,
         'issue_ip_limit_per_minute' => 10, 'verify_ip_limit_per_minute' => 20,
-        'read_ip_limit_per_minute' => 0, 'read_session_limit_per_minute' => 0,
+        'read_ip_limit_per_minute' => $readLimit, 'read_session_limit_per_minute' => $readLimit,
         'otp_pepper' => 'TEST-only-synthetic-load-pepper-0123456789',
         'telegram_url' => null,
     ];
