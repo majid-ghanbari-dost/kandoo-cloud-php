@@ -32,8 +32,10 @@ independent scenarios (per-session budget, per-peer budget, session resume shari
 with per-scenario limits, a clock-advance step and the client obligations the Android lane needs
 (honour `Retry-After`, never log out on 429, only 401 clears the session).
 `tests/Unit/CustomerThrottleVectorTest.php` replays the file against the real surface, so the
-file is pinned. **Still open (cross-lane): C-AND-CUST acceptance/replay of this file.** The
-accepted P-31 happy-path vectors are unchanged.
+file is pinned. **Still open (cross-lane): C-AND-CUST acceptance/replay of this file** — asked explicitly in
+`docs/questions/Q-P34-02.md` with three one-line answer options (accept, disagree on a
+scenario, or decline so the file is recorded as "client replay waived"). The accepted P-31
+happy-path vectors are unchanged.
 
 **Item 3 — P-30 host kit + P-33 Faraz kit.**
 `bin/preflight.php` (new, read-only): runtime + extensions, config loadable and OUTSIDE the web
