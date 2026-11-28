@@ -13,8 +13,15 @@ final class LogicalBackup
         return '`'.str_replace('`','``',$name).'`';
     }
 
-    /** Output directory must already exist outside the application tree, and be private. */
-    public static function create(\PDO $pdo, string $directory): array
+    /**
+     * Output directory must already exist outside the application tree, and be private.
+     *
+     * `$hmacKey` is optional: a plain SHA-256 digest proves the file did not rot in transit,
+     * but anyone who can replace the file can also recompute that digest. When the operator
+     * configures `backup_hmac_key`, the archive is additionally signed with HMAC-SHA256 over
+     * the whole file, so `restore-test` can refuse a file it did not itself produce.
+     */
+    public static function create(\PDO $pdo, string $directory, ?string $hmacKey = null): array
     {
         $dir=realpath($directory); $root=realpath(kandoo_app_root());
         if ($dir === false || $root === false || !is_dir($dir) || !is_writable($dir)
@@ -69,7 +76,13 @@ final class LogicalBackup
             if (!fflush($fp)) { throw new \RuntimeException('Backup flush failed'); }
             fclose($fp); $fp=null;
             $sha=hash_file('sha256',$file); if (!is_string($sha)) { throw new \RuntimeException('Backup checksum failed'); }
-            $done=true; return ['path'=>$file,'sha256'=>$sha];
+            $result=['path'=>$file,'sha256'=>$sha];
+            if ($hmacKey !== null) {
+                $mac=hash_hmac_file('sha256',$file,$hmacKey);
+                if (!is_string($mac)) { throw new \RuntimeException('Backup signature failed'); }
+                $result['hmac_sha256']=$mac;
+            }
+            $done=true; return $result;
         } finally {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY,true);
@@ -78,17 +91,29 @@ final class LogicalBackup
         }
     }
 
-    /** Only restore a trusted, checksummed archive into an existing empty disposable test database. */
-    public static function restoreTest(\PDO $pdo, string $file, string $expectedSha): void
+    /**
+     * Only restore a trusted archive into an existing empty disposable test database.
+     *
+     * With `$hmacKey` configured the caller must also present the HMAC-SHA256 produced by
+     * `create()`; without it the archive is refused. Presenting a signature while no key is
+     * configured is refused too, so the check can never silently degrade to checksum-only.
+     */
+    public static function restoreTest(\PDO $pdo, string $file, string $expectedSha, ?string $hmacKey = null, ?string $expectedHmac = null): void
     {
         $name=$pdo->query('SELECT DATABASE()')->fetchColumn();
         if (!is_string($name) || preg_match('/^TEST_RESTORE_[a-f0-9]{12}$/D',$name)!==1) { throw new \RuntimeException('Restore requires an isolated TEST_RESTORE database'); }
         if (preg_match('/^[a-f0-9]{64}$/D',$expectedSha)!==1 || !is_file($file) || is_link($file)) { throw new \RuntimeException('Backup integrity mismatch'); }
+        if ($hmacKey !== null && ($expectedHmac === null || preg_match('/^[a-f0-9]{64}$/D',$expectedHmac)!==1)) { throw new \RuntimeException('Backup authenticity required'); }
+        if ($hmacKey === null && $expectedHmac !== null) { throw new \RuntimeException('Authenticity key not configured'); }
         $q=$pdo->prepare('SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=?'); $q->execute([$name]);
         if ((int)$q->fetchColumn() !== 0) { throw new \RuntimeException('Restore target must be empty'); }
         $fp=fopen($file,'rb'); if ($fp===false || !flock($fp,LOCK_SH)) { throw new \RuntimeException('Cannot read backup'); }
         $ctx=hash_init('sha256'); hash_update_stream($ctx,$fp);
         if (!hash_equals($expectedSha,hash_final($ctx)) || !rewind($fp)) { fclose($fp); throw new \RuntimeException('Backup integrity mismatch'); }
+        if ($hmacKey !== null) {
+            $mac=hash_hmac_file('sha256',$file,$hmacKey);
+            if (!is_string($mac) || !hash_equals($mac,(string) $expectedHmac)) { fclose($fp); throw new \RuntimeException('Backup authenticity mismatch'); }
+        }
         $tables=[]; $ended=false; $phase='header';
         $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
         try {

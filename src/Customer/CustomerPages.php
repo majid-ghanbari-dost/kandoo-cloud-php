@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Kandoo\Cloud\Customer;
 
 use Kandoo\Cloud\Http\Html;
+use Kandoo\Cloud\Http\PeerAddress;
 use Kandoo\Cloud\Http\Request;
 use Kandoo\Cloud\Http\Response;
 use Kandoo\Cloud\Store\StoreGateway;
@@ -13,7 +14,8 @@ use Kandoo\Cloud\Support\Clock;
 /** Private pages and OTP API. No token, code or phone is logged. */
 final class CustomerPages
 {
-    public function __construct(private array $config, private CustomerAuth $auth, private bool $legalGate = false, private ?StoreGateway $gateway = null, private ?Clock $clock = null, private bool $demo = false) {}
+    /** @param list<string> $trustedProxies validated reverse-proxy addresses (empty = direct peer only) */
+    public function __construct(private array $config, private CustomerAuth $auth, private bool $legalGate = false, private ?StoreGateway $gateway = null, private ?Clock $clock = null, private bool $demo = false, private array $trustedProxies = []) {}
 
     public function handle(Request $request): Response
     {
@@ -192,8 +194,8 @@ final class CustomerPages
     {
         $limit = (int) ($this->config['read_ip_limit_per_minute'] ?? 120);
         if ($limit < 1 || $this->gateway === null || $this->clock === null) { return true; }
-        $peer = $request->clientIp() !== '' ? $request->clientIp() : 'unknown';
-        $key = 'ip:'.$peer;
+        $peer = PeerAddress::effective($request, $this->trustedProxies);
+        $key = 'ip:'.($peer !== '' ? $peer : 'unknown');
         return $this->gateway->rateHit('customer_read', hash_hmac('sha256', $key, (string) ($this->config['otp_pepper'] ?? '')), intdiv($this->clock->nowUnix(), 60) * 60, $limit);
     }
 
@@ -222,8 +224,8 @@ final class CustomerPages
         // Trust only REMOTE_ADDR; forwarded headers are untrusted without a proxy policy.
         if ($this->gateway === null || $this->clock === null) { return false; }
         $limit = $scope === 'customer_issue' ? ($this->config['issue_ip_limit_per_minute'] ?? 10) : ($this->config['verify_ip_limit_per_minute'] ?? 20);
-        $peer = $request->clientIp() !== '' ? $request->clientIp() : 'unknown';
-        $key = hash_hmac('sha256', $peer, $this->config['otp_pepper']);
+        $peer = PeerAddress::effective($request, $this->trustedProxies);
+        $key = hash_hmac('sha256', $peer !== '' ? $peer : 'unknown', $this->config['otp_pepper']);
         $window = intdiv($this->clock->nowUnix(), 60) * 60;
         return $this->gateway->rateHit($scope, $key, $window, $limit);
     }

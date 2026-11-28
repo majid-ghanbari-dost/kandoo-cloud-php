@@ -77,6 +77,21 @@ return [
     // Ingest batches per store (§5.4 note, UNCONFIRMED U5). 0 disables. Default 120.
     'ingest_rate_limit_per_minute' => 120,
 
+    // ── Reverse proxy (P-34) ─────────────────────────────────────────────────
+    // Empty list = every limiter keys on the DIRECT peer address (safe default: a spoofed
+    // X-Forwarded-For header is ignored). Set it ONLY to the addresses of your own proxies,
+    // e.g. ['127.0.0.1'] for a local reverse proxy. Then the public and customer limiters use
+    // the right-most untrusted X-Forwarded-For entry; the admin limiter always stays on the
+    // direct peer. A malformed/oversized header falls back to the direct peer.
+    'trusted_proxies' => [],
+
+    // ── Backup authenticity (P-30/P-34) ───────────────────────────────────────
+    // Optional 32-256 byte secret kept in config.php (never in the repo). When set, every
+    // `bin/backup.php create` archive is HMAC-SHA256 signed and `restore-test` REFUSES an
+    // archive without the matching signature — SHA-256 alone proves integrity, not
+    // authenticity. null keeps the previous checksum-only behaviour.
+    'backup_hmac_key' => null,
+
     // ── Legal-copy release gate (D14, §6.5, UNCONFIRMED U3) ──────────────────
     // false = serve the public page with the placeholder legal copy (PM ORDER 9).
     // true  = reproduce the frozen production 503 LEGAL_COPY_UNAVAILABLE exactly.

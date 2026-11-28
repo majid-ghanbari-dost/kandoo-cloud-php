@@ -133,6 +133,25 @@ final class Config
         }
         $config['public_legal_copy_required'] = $gate;
 
+        // Reverse-proxy trust list (P-34). Empty = every limiter uses the direct peer only.
+        $trusted = $raw['trusted_proxies'] ?? [];
+        if (!is_array($trusted) || !array_is_list($trusted) || count($trusted) > 16) {
+            throw new ConfigException('trusted_proxies must be a list of at most 16 proxy addresses.');
+        }
+        foreach ($trusted as $proxy) {
+            if (!is_string($proxy) || filter_var($proxy, FILTER_VALIDATE_IP) === false) {
+                throw new ConfigException('trusted_proxies entries must be IP addresses.');
+            }
+        }
+        $config['trusted_proxies'] = $trusted;
+
+        // Optional backup authenticity key (P-30/P-34): when set, archives are HMAC-signed.
+        $backupKey = $raw['backup_hmac_key'] ?? null;
+        if ($backupKey !== null && (!is_string($backupKey) || strlen($backupKey) < 32 || strlen($backupKey) > 256)) {
+            throw new ConfigException('backup_hmac_key must be null or a 32-256 byte secret configured outside the repository.');
+        }
+        $config['backup_hmac_key'] = $backupKey;
+
         $env = $raw['env'] ?? 'production';
         if (!is_string($env) || $env === '') {
             throw new ConfigException('env must be a non-empty string.');
